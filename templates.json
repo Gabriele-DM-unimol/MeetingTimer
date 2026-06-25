@@ -1,0 +1,237 @@
+[
+    {   
+    "id": 1,    
+    "name": "fine_settimana_std",
+        "conferenceStart": "10:00:00",
+        "timers": [{
+            "id": 1,
+            "name": "Cantico e preghiera",
+            "start": "10:00:00",
+            "end": "10:05:00",
+            "maxDuration": 300,
+            "duration": 300,
+            "active": false
+        },
+        {
+            "id": 2,
+            "name": "Discorso pubblico",
+            "start": "10:05:00",
+            "end": "10:35:00",
+            "maxDuration": 1800,
+            "duration": 1800,
+            "active": false
+        },
+        {
+            "id": 3,
+            "name": "Cantico",
+            "start": "10:35:00",
+            "end": "10:40:00",
+            "maxDuration": 300,
+            "duration": 300,
+            "active": false
+        },
+        {
+            "id": 4,
+            "name": "Studio Torre di Guardia",
+            "start": "10:40:00",
+            "end": "11:40:00",
+            "maxDuration": 3600,
+            "duration": 3600,
+            "active": false
+        },
+                    {
+            "id": 5,
+            "name": "Cantico e preghiera",
+            "start": "11:40:00",
+            "end": "11:45:00",
+            "maxDuration": 300,
+            "duration": 300,
+            "active": false
+        }
+        ],            
+        "conferenceEnd": "11:45:00"
+    },
+    {   
+        "id": 2,
+        "name":"infrasettimanale_std",
+        "conferenceStart": "19:00:00",
+            "timers": [{
+                "id": 1,
+                "name": "Cantico e preghiera",
+                "start": "19:00:00",
+                "end": "19:05:00",
+                "maxDuration": 300,
+                "duration": 300,
+                "active": false
+            },
+                        {
+                "id": 2,
+                "name": "Commenti introduttivi",
+                "start": "19:05:00",
+                "end": "19:06:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": false
+            },
+            {
+                "id": 3,
+                "name": "Discorso",
+                "start": "19:06:00",
+                "end": "19:16:00",
+                "maxDuration": 600,
+                "duration": 600,
+                "active": false
+            },
+            {
+                "id": 4,
+                "name": "Gemme spirituali",
+                "start": "19:16:00",
+                "end": "19:26:00",
+                "maxDuration": 600,
+                "duration": 600,
+                "active": false
+            },
+            {
+                "id": 5,
+                "name": "Lettura biblica",
+                "start": "19:26:00",
+                "end": "19:30:00",
+                "maxDuration": 240,
+                "duration": 240,
+                "active": false
+            },
+            {
+                "id": 6,
+                "name": "Consigli",
+                "start": "19:30:00",
+                "end": "19:31:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": false
+            },
+            {
+                "id": 7,
+                "name": "Esercitazione 1",
+                "start": "19:31:00",
+                "end": "19:34:00",
+                "maxDuration": 180,
+                "duration": 180,
+                "active": false
+            },
+            {
+                "id": 8,
+                "name": "Consigli",
+                "start": "19:34:00",
+                "end": "19:35:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": false
+            },
+            {
+                "id": 9,
+                "name": "Esercitazione 2",
+                "start": "19:35:00",
+                "end": "19:39:00",
+                "maxDuration": 240,
+                "duration": 240,
+                "active": false
+            },
+            {
+                "id": 10,
+                "name": "Consigli",
+                "start": "19:39:00",
+                "end": "19:40:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": false
+            },
+            {
+                "id": 11,
+                "name": "Esercitazione 3",
+                "start": "19:40:00",
+                "end": "19:45:00",
+                "maxDuration": 300,
+                "duration": 300,
+                "active": false
+            },
+            {
+                "id": 12,
+                "name": "Consigli",
+                "start": "19:45:00",
+                "end": "19:46:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": false
+            },
+            {
+                "id": 13,
+                "name": "Cantico",
+                "start": "19:46:00",
+                "end": "19:51:00",
+                "maxDuration": 300,
+                "duration": 300,
+                "active": false
+            },
+            {
+                "id": 14,
+                "name": "Vita cristiana 1",
+                "start": "19:51:00",
+                "end": "19:59:00",
+                "maxDuration": 480,
+                "duration": 480,
+                "active": false
+            },
+            {
+                "id": 15,
+                "name": "Vita cristiana 2",
+                "start": "19:59:00",
+                "end": "20:06:00",
+                "maxDuration": 420,
+                "duration": 420,
+                "active": false
+            },
+            {
+                "id": 16,
+                "name": "Studio biblico",
+                "start": "20:06:00",
+                "end": "20:36:00",
+                "maxDuration": 1800,
+                "duration": 1800,
+                "active": false
+            },
+            {
+                "id": 17,
+                "name": "Commenti",
+                "start": "20:36:00",
+                "end": "20:39:00",
+                "maxDuration": 180,
+                "duration": 180,
+                "active": false
+            },
+            {
+                "id": 18,
+                "name": "Cantico e preghiera",
+                "start": "20:39:00",
+                "end": "20:44:00",
+                "maxDuration": 300,
+                "duration": 300,
+                "active": false
+            }
+            ],            
+            "conferenceEnd": "20:45:00" 
+    },
+    {
+        "id": 3,
+        "name":"infrasettimanale",
+        "conferenceStart": "19:00:00",
+        "conferenceEnd": "20:45:00",
+        "timers": []
+    },
+    {
+        "id": 4,
+        "name":"fine_settimana",
+        "conferenceStart": "10:00:00",
+        "conferenceEnd": "11:45:00",
+        "timers": []
+    }
+]

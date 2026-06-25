@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Timer</title>
+    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+
+    <script type="text/javascript" src="admin3.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"
+    ></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body x-data="admin" class="">
+    <template x-if="!loading">
+      <div class="flex w-full justify-between gap-3">
+        <!-- parte sx opzionale -->
+        <div
+          class="hidden lg:block w-full pl-3 pr-3 pb-3 h-screen overflow-y-auto"
+        >
+          <!-- parte superiore fissa-->
+          <div class="sticky top-0" style="background-color: Canvas">
+            <div class="flex items-center justify-between gap-4 pt-3 pb-3">
+              <!-- input ora inizio -->
+              <div
+                class="flex w-full max-w-xs flex-col gap-1 text-on-surface dark:text-on-surface-dark"
+              >
+                <label for="textInputDefault" class="w-fit pl-0.5 text-sm"
+                  >Inizio [ reale:
+                  <strong x-text="effectiveStart"></strong> ]</label
+                >
+                <input
+                  id="textInputDefault"
+                  type="time"
+                  x-model="conferenceStartVal"
+                  :disabled="isTimerActive"
+                  @input="setEndAuto()"
+                  class="w-full rounded-radius border border-outline bg-surface-alt px-2 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-75 dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:focus-visible:outline-primary-dark"
+                  name="name"
+                  autocomplete="name"
+                />
+              </div>
+              <!-- input ora fine -->
+              <div
+                class="flex w-full max-w-xs flex-col gap-1 text-on-surface dark:text-on-surface-dark"
+              >
+                <label for="textInputDefault" class="w-fit pl-0.5 text-sm"
+                  >Fine [ prevista:
+                  <strong x-text="calculatedEnd"> </strong> ]</label
+                >
+                <input
+                  id="textInputDefault"
+                  type="time"
+                  x-model="conferenceEndVal"
+                  :disabled="isTimerActive"
+                  @input="setStartAuto(); postTimers()"
+                  class="w-full rounded-radius border border-outline bg-surface-alt px-2 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-75 dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:focus-visible:outline-primary-dark"
+                  name="name"
+                  autocomplete="name"
+                />
+              </div>
+              <!-- input template -->
+              <div
+                class="relative flex w-full max-w-xs flex-col gap-1 text-neutral-600 dark:text-neutral-300"
+              >
+                <label for="template" class="w-fit pl-0.5 text-sm"
+                  >Template</label
+                >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="absolute pointer-events-none right-4 top-8 size-5"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <select
+                  id="template"
+                  name="template"
+                  :disabled="isTimerActive"
+                  x-model="selectedTemplateId"
+                  class="w-full appearance-none rounded-sm border border-neutral-300 bg-neutral-50 px-4 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:cursor-not-allowed disabled:opacity-75 dark:border-neutral-700 dark:bg-neutral-900/50 dark:focus-visible:outline-white"
+                  placeholder="Seleziona un template..."
+                >
+                  <option selected disabled hidden>
+                    Seleziona template...
+                  </option>
+                  <template x-for="template in templates" :key="template.id">
+                    <option
+                      :value="template.id"
+                      x-text="template.name"
+                    ></option>
+                  </template>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-center items-center pt-3 pb-3 gap-3">
+              <!-- Pulsante Indietro -->
+              <button
+                type="button"
+                :disabled="!isTimerActive"
+                @click="back(); startCountdown(); postTimers()"
+                class="w-full flex justify-center border border-neutral-700 bg-neutral-900 text-neutral-300 cursor-pointer whitespace-nowrap p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="size-5 fill-on-primary-dark"
+                  fill="currentColor"
+                >
+                  <path
+                    fill="white"
+                    fill-rule="evenodd"
+                    d="m4.5 18.75 7.5-7.5 7.5 7.5"
+                    clip-rule="evenodd"
+                  />
+                  <path
+                    fill="white"
+                    fill-rule="evenodd"
+                    d="m4.5 12.75 7.5-7.5 7.5 7.5"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+
+              <button
+              type="button"
+              :disabled="isTimerActive"
+              @click=""
+              class="w-1/8 flex justify-center border border-neutral-700 bg-neutral-900 text-neutral-300 cursor-pointer whitespace-nowrap p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                <svg
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="size-5 fill-on-primary-dark"
+                fill="currentColor"
+              >
+                <path 
+                fill="white"
+                fill-rule="evenodd"
+                d="M24 9h-9l3.364-3.364c-1.7-1.7-3.96-2.636-6.364-2.636s-4.664 0.936-6.364 2.636c-1.7 1.7-2.636 3.96-2.636 6.364s0.936 4.664 2.636 6.364c1.7 1.7 3.96 2.636 6.364 2.636s4.664-0.936 6.364-2.636c0.142-0.142 0.278-0.288 0.409-0.438l2.258 1.975c-2.2 2.512-5.43 4.098-9.031 4.098-6.627 0-12-5.373-12-12s5.373-12 12-12c3.314 0 6.313 1.344 8.485 3.515l3.515-3.515v9z" 
+               clip-rule="evenodd" 
+                ></path>
+              </svg>
+            </button>
+
+              <!-- Pulsante Avanti -->
+              <button
+                @click="next(); startCountdown(); postTimers()"
+                type="button"
+                :class="[isTimerActive? 'border-neutral-700':'border-green-500']"
+                class="w-full flex justify-center border bg-neutral-900 text-neutral-300 cursor-pointer whitespace-nowrap p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="size-5 fill-on-primary-dark"
+                  fill="currentColor"
+                >
+                  <path
+                    fill="white"
+                    fill-rule="evenodd"
+                    d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            class="w-full"
+            :class="[slicedTimers[0].length > 0 ? 'space-y-2' : '']"
+          >
+            <!-- Lista passato-->
+            <ul class="w-full space-y-2">
+              <template x-for="timer in slicedTimers[0]" :key="timer.id">
+                <li
+                  class="flex items-center justify-between p-1 border bg-neutral-900 text-neutral-300"
+                  :class="[timer.active? 'border-green-500': 'border-neutral-700']"
+                >
+                  <input
+                    x-model="timer.name"
+                    :id="'textInput' + timer.id"
+                    disable="true"
+                    type="text"
+                    class="w-full text-lg px-2 py-2 disabled:cursor-not-allowed border-outline-dark bg-surface-dark-alt/50 focus-visible:outline-primary-dark"
+                    name="name"
+                  />
+                  <div class="w-full p-3 flex align-center justify-end">
+                    <span
+                      class="w-fit inline-flex overflow-hidden rounded-sm border text-xs font-medium bg-neutral-900"
+                      :class="[timer.duration>timer.maxDuration? 'border-red-500 text-red-500': 'border-green-500 text-green-500']"
+                    >
+                      <span
+                        class="px-2 py-1"
+                        :class="[timer.duration>timer.maxDuration? 'bg-red-500/10': 'bg-green-500/10']"
+                        x-text="getSecondsString(timer.duration)"
+                      ></span>
+                    </span>
+                  </div>
+
+                  <div
+                    x-data="{ decimalPoints: 0, incrementAmount: 1 }"
+                    class="flex flex-col gap-1 pr-2"
+                  >
+                    <div x-on:dblclick.prevent class="flex items-center">
+                      <button
+                        :disabled="true"
+                        x-on:click="timer.maxDuration = Math.max(min, timer.maxDuration - incrementAmount)"
+                        class="cursor-pointer disabled:cursor-not-allowed flex h-10 items-center justify-center rounded-l-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark"
+                        aria-label="subtract"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          stroke="currentColor"
+                          fill="none"
+                          stroke-width="2"
+                          class="size-4"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 12h-15"
+                          />
+                        </svg>
+                      </button>
+                      <input
+                        :value="Math.floor(timer.maxDuration / 60)"
+                        @input="timer.maxDuration = +$event.target.value * 60"
+                        id="counterInput"
+                        disabled="true"
+                        type="number"
+                        :max="max"
+                        :min="min"
+                        onkeyup="enforceMinMax(this)"
+                        class="border-x-none disabled:cursor-not-allowed h-10 w-20 rounded-none border-y border-outline bg-surface-alt/50 text-center text-on-surface-strong focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:text-on-surface-dark-strong dark:focus-visible:outline-primary-dark"
+                      />
+                      <button
+                        x-on:click="timer.maxDuration = Math.min(max, timer.maxDuration + incrementAmount);"
+                        :disabled="true"
+                        class="cursor-pointer flex h-10 items-center justify-center rounded-r-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark disabled:cursor-not-allowed"
+                        aria-label="add"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          stroke="currentColor"
+                          fill="none"
+                          stroke-width="2"
+                          class="size-4"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 4.5v15m7.5-7.5h-15"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    :disabled="true"
+                    @click="deleteTimer(timer)"
+                    class="cursor-pointer inline-flex justify-center items-center aspect-square whitespace-nowrap rounded-full border border-primary bg-red-500 p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:bg-inherit disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="size-5 fill-on-primary-dark"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M4.5 4.5a.75.75 0 011.06 0L12 10.94l6.44-6.44a.75.75 0 011.06 1.06L13.06 12l6.44 6.44a.75.75 0 01-1.06 1.06L12 13.06l-6.44 6.44a.75.75 0 01-1.06-1.06L10.94 12 4.5 5.56a.75.75 0 010-1.06z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </li>
+              </template>
+            </ul>
+            <!-- Lista futuro-->
+            <ul
+              class="w-full space-y-2"
+              x-sort:config="{ handle: '[x-sort\\:handle]' }"
+              x-sort="handle($item, $position)"
+            >
+              <template x-for="timer in slicedTimers[1]" :key="timer.id">
+                <li
+                  x-sort:item="timer.id"
+                  class="flex items-center p-1 border bg-neutral-900 text-neutral-300"
+                  :class="[timer.active? 'border-green-500': 'border-neutral-700']"
+                >
+                  <div
+                    x-show="!timer.active"
+                    class="handle cursor-move flex items-center justify-center"
+                    x-sort:handle
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
+                      />
+                    </svg>
+                  </div>
+
+                  <input
+                    x-model="timer.name"
+                    :id="'textInput' + timer.id"
+                    @change="postTimers()"
+                    type="text"
+                    class="w-full text-lg px-2 py-2 border-outline-dark bg-surface-dark-alt/50 focus-visible:outline-primary-dark"
+                    name="name"
+                  />
+                  <div class="w-full p-3 flex align-center justify-end">
+                    <span
+                      class="w-fit inline-flex overflow-hidden rounded-sm border text-xs font-medium border-outline bg-surface-dark text-on-surface-dark"
+                    >
+                      <span
+                        class="px-2 py-1 bg-surface-alt/10"
+                        x-text="getSecondsString(timer.duration)"
+                      ></span>
+                    </span>
+                  </div>
+
+                  <div
+                    x-data="{ decimalPoints: 0, incrementAmount: 1 }"
+                    class="flex flex-col gap-1 pr-2"
+                  >
+                    <div x-on:dblclick.prevent class="flex items-center">
+                      <button
+                        :disabled="timer.active"
+                        x-on:click="timer.maxDuration = Math.max(min*60, timer.maxDuration - incrementAmount*60); postTimers()"
+                        class="flex h-10 items-center justify-center rounded-l-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark"
+                        :class="[timer.active? 'cursor-not-allowed': 'cursor-pointer']"
+                        aria-label="subtract"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          stroke="currentColor"
+                          fill="none"
+                          stroke-width="2"
+                          class="size-4"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19.5 12h-15"
+                          />
+                        </svg>
+                      </button>
+                      <input
+                        :value="Math.floor(timer.maxDuration / 60)"
+                        @input="timer.maxDuration = +$event.target.value * 60; postTimers()"
+                        id="counterInput"
+                        disabled="true"
+                        type="number"
+                        :max="max"
+                        :min="min"
+                        onkeyup="enforceMinMax(this)"
+                        class="border-x-none h-10 w-20 rounded-none-y disabled:cursor-not-allowed border border-outline bg-surface-alt/50 text-center text-on-surface-strong focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:text-on-surface-dark-strong dark:focus-visible:outline-primary-dark"
+                      />
+                      <button
+                        :disabled="timer.active || meetingInDelay"
+                        x-on:click="timer.maxDuration = Math.min(max*60, timer.maxDuration + incrementAmount*60); postTimers();"
+                        class="flex h-10 items-center justify-center rounded-r-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark"
+                        :class="[timer.active? 'cursor-not-allowed': 'cursor-pointer']"
+                        aria-label="add"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          stroke="currentColor"
+                          fill="none"
+                          stroke-width="2"
+                          class="size-4"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 4.5v15m7.5-7.5h-15"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    :disabled="timer.active"
+                    @click="deleteTimer(timer); postTimers()"
+                    :class="[timer.active? 'bg-inherit': 'bg-red-500 ']"
+                    class="cursor-pointer inline-flex justify-center items-center aspect-square whitespace-nowrap rounded-full border border-primary p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:cursor-not-allowed"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="size-5 fill-on-primary-dark"
+                      fill="currentColor"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M4.5 4.5a.75.75 0 011.06 0L12 10.94l6.44-6.44a.75.75 0 011.06 1.06L13.06 12l6.44 6.44a.75.75 0 01-1.06 1.06L12 13.06l-6.44 6.44a.75.75 0 01-1.06-1.06L10.94 12 4.5 5.56a.75.75 0 010-1.06z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </li>
+              </template>
+              <li
+                class="flex justify-center items-center p-1 border border-neutral-700 bg-neutral-900 text-neutral-300"
+              >
+                <button
+                  type="button"
+                  @click="modalIsOpen = true"
+                  class="w-full flex justify-center cursor-pointer whitespace-nowrap p-2 text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  <svg
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="size-5 fill-on-primary-dark"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill="white"
+                      fill-rule="evenodd"
+                      d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <!-- parte dx fissa -->
+        <div class="w-full h-full overflow-hidden">
+          <div
+            class="h-screen border border-neutral-700 bg-neutral-900 flex flex-col justify-center items-center gap-12"
+          >
+            <div
+              class="flex items-center justify-center gap-2 text-center"
+              x-show="isTimerActive"
+            >
+              <span
+                class="text-5xl font-bold"
+                :class="[delay?'text-red-500':'text-green-500']"
+                x-text="delay? 'TEMPO SCADUTO' : activeTimer?.name"
+              ></span>
+            </div>
+            <div class="flex">
+              <div
+                :class="[delay?'text-red-500':'text-green-500']"
+                class="text-9xl font-bold"
+                x-text="mins"
+              ></div>
+              <div
+                :class="[delay?'text-red-500':'text-green-500']"
+                class="text-8xl font-bold"
+              >
+                :
+              </div>
+              <div
+                :class="[delay?'text-red-500':'text-green-500']"
+                class="text-8xl font-bold"
+                x-text="secs"
+              ></div>
+            </div>
+            <div
+              class="w-90/100 rounded-full h-2.5 bg-gray-700 flex flex-row-reverse"
+            >
+              <div
+                x-show="showBar"
+                :class="[barValue===0?'bg-red-500':'bg-green-500']"
+                class="h-2.5 rounded-full"
+                :style="'width:' + [barValue===0 ? 100 : barValue] + '%'"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <!--modale nuovo inserimento-->
+    <div
+      x-cloak
+      x-show="modalIsOpen"
+      x-transition.opacity.duration.200ms
+      x-trap.inert.noscroll="modalIsOpen"
+      x-on:keydown.esc.window="modalIsOpen = false"
+      x-on:click.self="modalIsOpen = false"
+      class="fixed inset-0 z-30 flex items-end justify-center bg-black/20 p-4 pb-8 backdrop-blur-md sm:items-center lg:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="defaultModalTitle"
+    >
+      <!-- Modal Dialog -->
+      <div
+        x-show="modalIsOpen"
+        x-transition:enter="transition ease-out duration-200 delay-100 motion-reduce:transition-opacity"
+        x-transition:enter-start="opacity-0 scale-50"
+        x-transition:enter-end="opacity-100 scale-100"
+        class="flex max-w-lg flex-col gap-4 overflow-hidden rounded-radius border border-outline bg-surface text-on-surface dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark"
+      >
+        <!-- Dialog Header -->
+        <div
+          class="flex items-center justify-between border-b border-outline bg-surface-alt/60 p-4 dark:border-outline-dark dark:bg-surface-dark/20"
+        >
+          <h3
+            id="defaultModalTitle"
+            class="font-semibold tracking-wide text-on-surface-strong dark:text-on-surface-dark-strong"
+          >
+            Aggiungi parte
+          </h3>
+          <button
+            x-on:click="modalIsOpen = false"
+            aria-label="close modal"
+            class="cursor-pointer"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="1.4"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <!-- Dialog Body -->
+        <div class="px-4 py-8 space-y-4">
+          <!-- Input nome -->
+          <div
+            class="flex w-full max-w-xs flex-col gap-1 text-on-surface dark:text-on-surface-dark"
+          >
+            <label for="textInputDefault" class="w-fit pl-0.5 text-sm"
+              >Nome</label
+            >
+            <input
+              x-model="insertingName"
+              id="textInputDefault"
+              type="text"
+              class="w-full rounded-radius border border-outline bg-surface-alt px-2 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-75 dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:focus-visible:outline-primary-dark"
+              name="name"
+              placeholder="Inserisci nome parte"
+            />
+          </div>
+          <!-- Input tempo -->
+          <div
+            x-data="{ decimalPoints: 0, incrementAmount: 1 }"
+            class="flex flex-col gap-1"
+          >
+            <div x-on:dblclick.prevent class="flex items-center">
+              <button
+                x-on:click="insertingDuration = Math.max(min, insertingDuration - incrementAmount)"
+                class="cursor-pointer flex h-10 items-center justify-center rounded-l-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark"
+                aria-label="subtract"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 12h-15"
+                  />
+                </svg>
+              </button>
+              <input
+                x-model="insertingDuration"
+                id="counterInput"
+                type="number"
+                :max="max"
+                :min="min"
+                onkeyup="enforceMinMax(this)"
+                class="border-x-none h-10 w-20 rounded-none border-y border-outline bg-surface-alt/50 text-center text-on-surface-strong focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-primary dark:border-outline-dark dark:bg-surface-dark-alt/50 dark:text-on-surface-dark-strong dark:focus-visible:outline-primary-dark"
+              />
+              <button
+                x-on:click="insertingDuration = Math.min(max, insertingDuration + incrementAmount);"
+                class="cursor-pointer flex h-10 items-center justify-center rounded-r-radius border border-outline bg-surface-alt px-4 py-2 text-on-surface hover:opacity-75 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:border-outline-dark dark:bg-surface-dark-alt dark:text-on-surface-dark dark:focus-visible:outline-primary-dark"
+                aria-label="add"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-width="2"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Dialog Footer -->
+        <div
+          class="flex flex-col-reverse justify-between gap-2 border-t border-outline bg-surface-alt/60 p-4 dark:border-outline-dark dark:bg-surface-dark/20 sm:flex-row sm:items-center md:justify-end"
+        >
+          <button
+            @click="modalIsOpen = false; addTimer();"
+            type="button"
+            class="cursor-pointer rounded-radius bg-primary border border-primary dark:border-primary-dark px-4 py-2 text-center text-sm font-medium tracking-wide text-on-primary transition hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:opacity-100 active:outline-offset-0 dark:bg-primary-dark dark:text-on-primary-dark dark:focus-visible:outline-primary-dark"
+          >
+            Aggiungi parte
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

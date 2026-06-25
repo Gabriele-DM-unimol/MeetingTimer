@@ -1,0 +1,10 @@
+- Timer gestione adunanza che consente admin e client multipli
+Istruzioni per la configurazione:
+    1. Installare python sulla macchina host (https://www.python.org/downloads) e successivamente flask (cmd 'pip install flask')
+    2. Rendere l'ip della macchina host statico (https://www.pcmag.com/how-to/how-to-set-up-a-static-ip-address)
+    3. Eseguire sulla macchina host il comando 'python [path]\app.py'
+        oppure
+    3. Impostare l'esecuzione del comando 'python [path]\app.py' all'avvio avendo cura di non spostare poi la cartella 'timer_app'
+    4. Collegarsi via browser all'app tramite gli indirizzi '[ip]:1914' e '[ip]:1914/admin'
+
+E' consigliato impostare un ip statico per la macchina host
