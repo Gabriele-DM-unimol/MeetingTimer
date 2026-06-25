@@ -5,10 +5,21 @@ from flask import Flask, Response, request, jsonify, send_from_directory
 import json
 import os
 import time
+import socket
+import webbrowser
+from threading import Timer
+import sys
 
+# --- CONFIGURAZIONE PERCORSI PER PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    # Se il programma viene eseguito come file .exe compilato
+    base_path = sys._MEIPASS
+else:
+    # Se viene eseguito normalmente come script Python (.py)
+    base_path = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, static_folder="fe")
-MEETING_FILE = "queue.json"
+app = Flask(__name__, static_folder=os.path.join(base_path, "fe"))
+MEETING_FILE = "queue.json"  # Rimane locale nella cartella di esecuzione per salvare lo stato
 clients = []
 
 
@@ -35,7 +46,8 @@ def load_meeting():
         return get_default_meeting()
     
 def get_default_meeting():
-    with open("templates.json", "r") as f:
+    path_templates = os.path.join(base_path, "templates.json")
+    with open(path_templates, "r") as f:
         templates = json.load(f)
         
     current_wday = time.localtime().tm_wday
@@ -68,17 +80,18 @@ def get_default_meeting():
 
 @app.route("/")
 def client():
-    return send_from_directory("fe", "client.html")
+    return send_from_directory(os.path.join(base_path, "fe"), "client.html")
 
 
 @app.route("/admin")
 def admin():
-    return send_from_directory("fe", "admin.html")
+    return send_from_directory(os.path.join(base_path, "fe"), "admin.html")
 
 # chiamate timer
 @app.route("/api/templates", methods=["GET"])
 def get_templates():
-    with open("templates.json", "r") as f:
+    path_templates = os.path.join(base_path, "templates.json")
+    with open(path_templates, "r") as f:
         return jsonify(json.load(f))
 
 
@@ -201,9 +214,42 @@ def stream():
 
 @app.route("/<path:filename>")
 def static_files(filename):
-    return send_from_directory("fe", filename)
+    return send_from_directory(os.path.join(base_path, "fe"), filename)
+
+
+def get_local_ip():
+    """Recupera dinamicamente l'IP locale del PC"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"
+
+
+def open_browser_tabs():
+    """Apre in sequenza le schede del client e dell'admin"""
+    port = 1914
+    ip_pc = get_local_ip()
+    
+    url_client = f"http://{ip_pc}:{port}/"
+    url_admin = f"http://{ip_pc}:{port}/admin"
+    
+    print(f"\n[Browser] Lancio automatico client: {url_client}")
+    print(f"[Browser] Lancio automatico admin: {url_admin}\n")
+    
+    webbrowser.open(url_client)
+    time.sleep(0.4)
+    webbrowser.open(url_admin)
 
 
 if __name__ == "__main__":
     save_meeting(get_default_meeting())
-    app.run(host="0.0.0.0", port=1914, debug=True, threaded=True)
+    
+    # Pianifica l'apertura delle schede poco dopo l'avvio del server
+    Timer(1.5, open_browser_tabs).start()
+    
+    # debug=False per evitare doppi avvii e doppi link aperti dal reloader di Flask
+    app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)

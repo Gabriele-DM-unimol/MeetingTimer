@@ -1,7 +1,4 @@
 <!DOCTYPE html>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 <html>
   <head>
     <title>Timer</title>
@@ -26,11 +23,74 @@
             s: String(now.getSeconds()).padStart(2, '0')
           }
         },
-        clock: { hm: '', s: '' }
+        clock: { hm: '', s: '' },
+        hasSecondaryScreen: false,
+        
+        async checkScreens() {
+          try {
+            // Controlla se le API dei dettagli degli schermi sono supportate
+            if ('getScreenDetails' in window || 'windowControlsOverlay' in navigator) {
+              const screenDetails = await window.getScreenDetails();
+              // Se ci sono più di 1 schermo, allora c'è un secondo monitor disponibile
+              this.hasSecondaryScreen = screenDetails.screens.length > 1;
+              
+              // Ascolta se l'utente attacca/stacca monitor in tempo reale
+              screenDetails.addEventListener('screenschange', () => {
+                this.hasSecondaryScreen = screenDetails.screens.length > 1;
+              });
+            }
+          } catch (err) {
+            console.log('Window Management API non autorizzate o non supportate. Uso fallback base.');
+            // Fallback base se i permessi non sono ancora stati dati
+            if (window.screen && window.screen.allScreens) {
+              this.hasSecondaryScreen = true;
+            } else if (window.screen.width > 0) {
+              // Verifica se ci sono indicazioni di monitor estesi basandosi sulle vecchie API
+              this.hasSecondaryScreen = (window.screen.availLeft !== 0 || window.screen.availTop !== 0);
+            }
+          }
+        },
+
+        async proiettaSuSecondoSchermo() {
+          try {
+            // Chiede i permessi espliciti per gestire le finestre sui vari monitor
+            const screenDetails = await window.getScreenDetails();
+            const secondaryScreen = screenDetails.screens.find(s => !s.isPrimary);
+            
+            if (secondaryScreen) {
+              // Opzioni di fullscreen puntando esplicitamente al secondo schermo rilevato
+              await document.documentElement.requestFullscreen({
+                screen: secondaryScreen
+              });
+            } else {
+              // Fallback: se non lo trova va in fullscreen sullo schermo corrente
+              await document.documentElement.requestFullscreen();
+            }
+          } catch (err) {
+            // Se le API avanzate falliscono o siamo su un browser che non le supporta al 100% (tipo Safari vecchio)
+            // proviamo il fullscreen standard
+            console.error('Errore spostamento avanzato monitor:', err);
+            document.documentElement.requestFullscreen().catch(e => print(e));
+          }
+        }
       }"
-      x-init="clock = getClockObj(); setInterval(() => { clock = getClockObj() }, 1000)"
+      x-init="clock = getClockObj(); setInterval(() => { clock = getClockObj() }, 1000); checkScreens();"
       class="w-full h-dvh relative"
     >
+      
+      <div x-show="hasSecondaryScreen" class="absolute top-4 left-4 z-50 transition-opacity duration-300 hover:opacity-100 opacity-40">
+        <button 
+          @click="proiettaSuSecondoSchermo()" 
+          type="button" 
+          class="flex items-center gap-2 bg-green-600 active:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-lg cursor-pointer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3.75-3v3M3.75 3.75h16.5M3.75 3.75v11.25c0 .414.336.75.75.75h15a.75.75 0 0 0 .75-.75V3.75m-16.5 0H20.25" />
+          </svg>
+          Proietta su secondo schermo
+        </button>
+      </div>
+
       <div class="h-full border border-neutral-700 bg-neutral-900 flex flex-col justify-center items-center gap-12">
         
         <div class="flex items-center justify-center gap-2 text-center h-16" x-show="isTimerActive">
@@ -41,7 +101,7 @@
           ></span>
         </div>
         
-        <div class="flex font-timer font-bold">
+        <div class="flex font-mono font-bold">
           <div :class="[delay?'text-red-500':'text-green-500']" class="text-9xl" x-text="mins"></div>
           <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl px-2">:</div>
           <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl" x-text="secs"></div>

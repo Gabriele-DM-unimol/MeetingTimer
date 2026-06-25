@@ -87,7 +87,7 @@ def estrai_programma_con_titoli():
         })
         
         # LA TUA LOGICA ORIGINALE (Invariata, cambiano solo i campi del dizionario di output)
-        if sum(durate_controllo) < 46 and sum(durate_controllo) > 24:
+        if sum(durate_controllo) < 46 and sum(durate_controllo) > 29:
             durate_controllo.append(1)
             programma.append({
                 "id": len(programma) + 1,
