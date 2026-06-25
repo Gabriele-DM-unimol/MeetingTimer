@@ -1,5 +1,6 @@
 from queue import Empty, Queue
 import random
+from automatic_timing import estrai_programma_con_titoli
 from flask import Flask, Response, request, jsonify, send_from_directory
 import json
 import os
@@ -23,11 +24,31 @@ def load_meeting():
             return get_default_meeting()
     
 def get_default_meeting():
-        with open("templates.json", "r") as f:
-            data = next(x for x in json.load(f) if x["name"] == "infrasettimanale_std") if time.localtime(
-            ).tm_wday < 5 else next(x for x in json.load(f) if x["name"] == "fine_settimana_std")
-        return data
-
+    with open("templates.json", "r") as f:
+        templates = json.load(f)
+        
+    if time.localtime().tm_wday < 5:
+        data = next(x for x in templates if x["name"] == "infrasettimanale_std")
+    else:
+        data = next(x for x in templates if x["name"] == "fine_settimana_std")
+    
+    if data["name"] == "infrasettimanale_std":
+        try:
+            # Chiamata allo scraper
+            timers_dinamici = estrai_programma_con_titoli()
+            if timers_dinamici:
+                # Sincronizza l'inizio del primo timer con il conferenceStart del template (19:00:00)
+                timers_dinamici[0]['start'] = data['conferenceStart']
+                
+                # Iniettiamo i timer estratti
+                data["timers"] = timers_dinamici
+                
+                # Calcola a cascata tutti i campi 'start' ed 'end' corretti per ogni riga
+                data = refresh_meeting(data)
+        except Exception as e:
+            print(f"Fallback attivo. Errore automazione scraper: {e}")
+            
+    return data
 # chiamate pagine html
 
 
@@ -49,7 +70,17 @@ def get_templates():
 
 @app.route("/api/meeting/start", methods=["GET"])
 def get_start():
-    return jsonify(get_default_meeting())
+    # 1. Generiamo il meeting di default (eseguendo lo scraper se infrasettimanale)
+    default_meeting = get_default_meeting()
+    
+    # 2. Aggiorniamo subito il file di stato corrente del server
+    save_meeting(default_meeting)
+    
+    # 3. Mandiamo il broadcast SSE ai client connessi per aggiornare i display in tempo reale
+    broadcast_message(json.dumps(default_meeting))
+    
+    # 4. Rispondiamo al chiamante
+    return jsonify(default_meeting)
 
 @app.route("/api/meeting", methods=["GET"])
 def get_meeting():
@@ -86,8 +117,17 @@ def refresh_meeting(data):
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
+    # --- FIX CRUCIALE PER IL BOOTSTRAP/RESET ---
+    # Se NON ci sono timer attivi, calcoliamo comunque la timeline iniziale 
+    # partendo da 0 (il primo timer) e distribuendo gli orari linearmente.
     if active_index is None:
+        current_time = conference_start
+        for timer in data['timers']:
+            timer['start'] = format_time(current_time)
+            current_time += timer['duration']
+            timer['end'] = format_time(current_time)
         return data
+    # --------------------------------------------
     
     max_id = max(t['id'] for t in data['timers']) 
     for i, timer in enumerate(data['timers']):
@@ -97,10 +137,9 @@ def refresh_meeting(data):
     actual_end = conference_start + total_duration
     
     if abs(actual_end - conference_end) <= 60:
-        return data  # Già in orario con tolleranza di 2 minuti
+        return data  # Già in orario con tolleranza
 
-    
-    time_difference = conference_end - actual_end  # Positivo se in anticipo, negativo se in ritardo
+    time_difference = conference_end - actual_end  
     
     adjustable_timers = [t for t in data['timers'][active_index:] if t['maxDuration'] > 300]
     
@@ -121,10 +160,7 @@ def refresh_meeting(data):
         current_time += timer['duration']
         timer['end'] = format_time(current_time)
 
-
-        
     return data
-
 
 
 

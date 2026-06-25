@@ -61,6 +61,7 @@ document.addEventListener("alpine:init", () => {
 
     templates: [],
     selectedTemplateId: undefined,
+    initialTemplateId: undefined,
 
     endDate: new Date(),
     eventSource: new EventSource("/stream"),
@@ -85,8 +86,7 @@ document.addEventListener("alpine:init", () => {
           this.startCountdown();
         }
       });
-
-      fetch("/api/templates")
+fetch("/api/templates")
         .then((res) => res.json())
         .then((data) => {
           this.templates = data;
@@ -95,6 +95,8 @@ document.addEventListener("alpine:init", () => {
           fetch("/api/meeting/start")
             .then((res) => res.json())
             .then((data) => {
+              // SALVIAMO L'ID QUI
+              this.initialTemplateId = data.id; 
               this.selectedTemplateId = data.id;
             })
             .then(() => {
@@ -188,16 +190,36 @@ document.addEventListener("alpine:init", () => {
       this.postTimers();
     },
 
-    applyTemplate() {
-      const templateToApply = this.templates.find((template) => {
-        return template.id === Number(this.selectedTemplateId);
-      });
-      this.conferenceStart = stringToDate(templateToApply.conferenceStart);
-      this.conferenceEnd = stringToDate(templateToApply.conferenceEnd);
-      this.timers = templateToApply.timers.map((timer) =>
-        this.timerMapper(timer)
-      );
-    },
+applyTemplate() {
+  // Se l'ID selezionato è lo stesso di quello iniziale automatico, ricarica i dati reali da JW
+  if (this.initialTemplateId && Number(this.selectedTemplateId) === Number(this.initialTemplateId)) {
+    fetch("api/meeting")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) {
+          this.conferenceStart = stringToDate(data?.conferenceStart);
+          this.conferenceEnd = stringToDate(data?.conferenceEnd);
+          this.timers = data?.timers.map((timer) => this.timerMapper(timer));
+          this.startCountdown();
+        }
+      })
+      .catch((err) => console.error("Errore nel ripristino dei dati automatici JW:", err));
+    return;
+  }
+
+  // Altrimenti, per tutti gli altri template, usa il comportamento statico standard
+  const templateToApply = this.templates.find((template) => {
+    return template.id === Number(this.selectedTemplateId);
+  });
+  
+  if (templateToApply) {
+    this.conferenceStart = stringToDate(templateToApply.conferenceStart);
+    this.conferenceEnd = stringToDate(templateToApply.conferenceEnd);
+    this.timers = templateToApply.timers.map((timer) =>
+      this.timerMapper(timer)
+    );
+  }
+},
 
     timerMapper(timer) {
       const startDate = stringToDate(timer.start);

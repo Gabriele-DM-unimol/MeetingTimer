@@ -53,30 +53,23 @@ def estrai_programma_con_titoli():
     corpo = soup.find(id="regionMain") or soup.find("article") or soup.body
     testo_completo = corpo.get_text(" ", strip=True)
     
-    # 1. Trova tutti i titoli numerati (es. "3. Sii grato")
     match_titoli_numerati = re.findall(r'\b\d+\.\s+(.+?)\s*[\(\[]\s*\d+\s*min\.?\s*[\)\]]', testo_completo, re.IGNORECASE)
-    
-    # 2. La TUA vecchia regex originale per estrarre i minuti
     match_minuti_grezzi = re.findall(r'[\(\[]\s*(\d+)\s*min\.?\s*[\)\]]', testo_completo, re.IGNORECASE)
-    
-    # IGNORIAMO IL PRIMO E L'ULTIMO RISULTATO (Slicing da indice 1 a penultimo)
-    # Rrisolve lo slittamento causato dai minuti dei commenti scritti nella pagina
     match_minuti = match_minuti_grezzi[1:-1]
     
-    # Costruiamo l'array finale inserendo manualmente le parti fisse esterne che gestisci tu
+    # Struttura coerente con il FE (In secondi, ore inizializzate a 19:00 standard)
     programma = [
-        {"titolo": "Cantico iniziale e preghiera", "minuti": 5},
-        {"titolo": "Commenti introduttivi", "minuti": 1}
+        {"id": 1, "name": "Cantico e preghiera", "start": "19:00:00", "end": "19:05:00", "maxDuration": 300, "duration": 300, "active": False},
+        {"id": 2, "name": "Commenti introduttivi", "start": "19:05:00", "end": "19:06:00", "maxDuration": 60, "duration": 60, "active": False}
     ]
     
-    durate_controllo = [5] # Serve per attivare matematicamente il cantico intermedio a 42 minuti
+    durate_controllo = [5] 
     indice_titolo_corrente = 0
     
     for m in match_minuti:
         minuti_int = int(m)
         durate_controllo.append(minuti_int)
         
-        # Assegniamo il titolo recuperato in modo speculare
         if indice_titolo_corrente < len(match_titoli_numerati):
             titolo_assegnato = match_titoli_numerati[indice_titolo_corrente].rstrip(':- ').strip()
             indice_titolo_corrente += 1
@@ -84,39 +77,42 @@ def estrai_programma_con_titoli():
             titolo_assegnato = "Parte Adunanza"
             
         programma.append({
-            "titolo": titolo_assegnato,
-            "minuti": minuti_int if 'minutes_int' in locals() else minuti_int
+            "id": len(programma) + 1,
+            "name": titolo_assegnato,
+            "start": "19:00:00",
+            "end": "19:00:00",
+            "maxDuration": minuti_int * 60,
+            "duration": minuti_int * 60,
+            "active": False
         })
         
+        # LA TUA LOGICA ORIGINALE (Invariata, cambiano solo i campi del dizionario di output)
         if sum(durate_controllo) < 46 and sum(durate_controllo) > 24:
             durate_controllo.append(1)
             programma.append({
-                "titolo": "Consigli",
-                "minuti": 1
+                "id": len(programma) + 1,
+                "name": "Consigli",
+                "start": "19:00:00",
+                "end": "19:00:00",
+                "maxDuration": 60,
+                "duration": 60,
+                "active": False
             })
 
-        # Regola storica: se la somma tocca 42 inseriamo il Cantico Intermedio fisso (41 + 1(commenti introduttivi) = 42)
+        # LA TUA LOGICA ORIGINALE
         if sum(durate_controllo) == 46:
             durate_controllo.append(5)
             programma.append({
-                "titolo": "Cantico intermedio",
-                "minuti": 5
+                "id": len(programma) + 1,
+                "name": "Cantico",
+                "start": "19:00:00",
+                "end": "19:00:00",
+                "maxDuration": 300,
+                "duration": 300,
+                "active": False
             })
             
-    # Aggiungiamo la chiusura fissa manuale
-    programma.append({"titolo": "Commenti conclusivi", "minuti": 3})
-    programma.append({"titolo": "Cantico finale e preghiera", "minuti": 5})
+    programma.append({"id": len(programma) + 1, "name": "Commenti", "start": "19:00:00", "end": "19:00:00", "maxDuration": 180, "duration": 180, "active": False})
+    programma.append({"id": len(programma) + 1, "name": "Cantico e preghiera", "start": "19:00:00", "end": "19:00:00", "maxDuration": 300, "duration": 300, "active": False})
     
     return programma
-
-#if __name__ == "__main__":
-    print("=== ESTRAZIONE PROGRAMMA ALLINEATO ===")
-    lista_programma = estrai_programma_con_titoli()
-    
-    print("-" * 70)
-    for i, parte in enumerate(lista_programma, 1):
-        print(f"⏱️ {str(i).zfill(2)}: {parte['titolo'].ljust(50)} -> {parte['minuti']} min")
-    print("-" * 70)
-    
-    print("\nArray finale pronto per il tuo software:")
-    print(lista_programma)
