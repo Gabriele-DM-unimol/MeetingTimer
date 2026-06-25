@@ -1,70 +1,68 @@
 <!DOCTYPE html>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 <html>
   <head>
     <title>Timer</title>
     <link rel="icon" type="image/x-icon" href="../favicon.ico" />
     <script type="text/javascript" src="client3.js"></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"
-    ></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 
     <link rel="stylesheet" href="styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   </head>
-  <body x-data="client" class="">
-    <div class="w-full h-full overflow-hidden">
-      <div
-        class="h-screen border border-neutral-700 bg-neutral-900 flex flex-col justify-center items-center gap-12"
-      >
-        <div
-          class="flex items-center justify-center gap-2 text-center"
-          x-show="isTimerActive"
-        >
+  <body x-data="client" class="bg-neutral-900 text-neutral-100 overflow-hidden select-none">
+    
+    <div 
+      x-data="{ 
+        getClockObj() {
+          const now = new Date();
+          return {
+            hm: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            s: String(now.getSeconds()).padStart(2, '0')
+          }
+        },
+        clock: { hm: '', s: '' }
+      }"
+      x-init="clock = getClockObj(); setInterval(() => { clock = getClockObj() }, 1000)"
+      class="w-full h-dvh relative"
+    >
+      <div class="h-full border border-neutral-700 bg-neutral-900 flex flex-col justify-center items-center gap-12">
+        
+        <div class="flex items-center justify-center gap-2 text-center h-16" x-show="isTimerActive">
           <span
-            class="text-5xl font-bold"
+            class="text-5xl font-bold tracking-wide"
             :class="[delay?'text-red-500':'text-green-500']"
             x-text="delay? 'TEMPO SCADUTO' : activeTimer?.name"
           ></span>
         </div>
-        <div class="flex">
-          <div
-            :class="[delay?'text-red-500':'text-green-500']"
-            class="text-9xl font-bold"
-            x-text="mins"
-          ></div>
-          <div
-            :class="[delay?'text-red-500':'text-green-500']"
-            class="text-8xl font-bold"
-          >
-            :
-          </div>
-          <div
-            :class="[delay?'text-red-500':'text-green-500']"
-            class="text-8xl font-bold"
-            x-text="secs"
-          ></div>
+        
+        <div class="flex font-timer font-bold">
+          <div :class="[delay?'text-red-500':'text-green-500']" class="text-9xl" x-text="mins"></div>
+          <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl px-2">:</div>
+          <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl" x-text="secs"></div>
         </div>
-        <div
-          class="w-90/100 rounded-full h-2.5 bg-gray-700 flex flex-row-reverse"
-        >
+        
+        <div class="w-9/12 rounded-full h-2.5 bg-neutral-800 flex flex-row-reverse overflow-hidden">
           <div
             x-show="showBar"
             :class="[barValue===0?'bg-red-500':'bg-green-500']"
-            class="h-2.5 rounded-full"
+            class="h-2.5 rounded-full transition-all duration-1000 ease-linear"
             :style="'width:' + [barValue===0 ? 100 : barValue] + '%'"
           ></div>
         </div>
       </div>
+
+      <div class="absolute bottom-6 right-8 z-50 bg-neutral-950/60 backdrop-blur-md px-4 py-2 border border-neutral-800 rounded-lg shadow-xl flex items-baseline gap-1 select-none">
+        <span class="font-mono text-3xl font-semibold text-neutral-400 tracking-wider" x-text="clock.hm"></span>
+        <span class="font-mono text-xl text-neutral-500">:</span>
+        <span class="font-mono text-xl font-medium text-neutral-500 w-[24px]" x-text="clock.s"></span>
+      </div>
+
     </div>
   </body>
 </html>

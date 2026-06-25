@@ -6,6 +6,7 @@ import json
 import os
 import time
 
+
 app = Flask(__name__, static_folder="fe")
 MEETING_FILE = "queue.json"
 clients = []
@@ -17,17 +18,29 @@ def save_meeting(data):
 
 
 def load_meeting():
-    with open(MEETING_FILE, "r") as f:
-        try:
-            return json.load(f)
-        except:
-            return get_default_meeting()
+    current_wday = time.localtime().tm_wday
+    # Capiamo quale tipo di adunanza dovrebbe esserci oggi
+    expected_template = "infrasettimanale_std" if current_wday < 5 else "fine_settimana_std"
+    
+    try:
+        with open(MEETING_FILE, "r") as f:
+            data = json.load(f)
+            # CONTROLLO CRUCIALE: Se il file esiste ma contiene l'adunanza sbagliata per oggi, forza il reset
+            if data.get("name") != expected_template:
+                print(f"Rilevato cambio adunanza (attesa: {expected_template}). Rigenero...")
+                return get_default_meeting()
+            return data
+    except Exception as e:
+        print(f"Impossibile leggere {MEETING_FILE} ({e}), genero il default...")
+        return get_default_meeting()
     
 def get_default_meeting():
     with open("templates.json", "r") as f:
         templates = json.load(f)
         
-    if time.localtime().tm_wday < 5:
+    current_wday = time.localtime().tm_wday
+    
+    if current_wday < 5:
         data = next(x for x in templates if x["name"] == "infrasettimanale_std")
     else:
         data = next(x for x in templates if x["name"] == "fine_settimana_std")
@@ -37,18 +50,19 @@ def get_default_meeting():
             # Chiamata allo scraper
             timers_dinamici = estrai_programma_con_titoli()
             if timers_dinamici:
-                # Sincronizza l'inizio del primo timer con il conferenceStart del template (19:00:00)
+                # Sincronizza l'inizio del primo timer con il conferenceStart del template
                 timers_dinamici[0]['start'] = data['conferenceStart']
                 
                 # Iniettiamo i timer estratti
                 data["timers"] = timers_dinamici
                 
-                # Calcola a cascata tutti i campi 'start' ed 'end' corretti per ogni riga
+                # Calcola a cascata tutti i campi 'start' ed 'end' corretti
                 data = refresh_meeting(data)
         except Exception as e:
             print(f"Fallback attivo. Errore automazione scraper: {e}")
             
     return data
+
 # chiamate pagine html
 
 

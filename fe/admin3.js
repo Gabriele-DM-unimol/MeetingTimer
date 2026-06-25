@@ -73,10 +73,11 @@ document.addEventListener("alpine:init", () => {
     init() {
       console.log("v. 0.0.2 ~ Giuseppe Di Menna 19/02/2025");
       this.$watch("selectedTemplateId", (value, oldValue) => {
-        if (value !== oldValue) {
-          this.applyTemplate();
+        // Esegui l'applyTemplate SOLO se non è il primo rendering (oldValue deve esistere)
+        if (oldValue !== undefined && value !== oldValue) {
+        this.applyTemplate();
         }
-      });
+      });;
 
       this.$watch("conferenceStart", (value, oldValue) => {
         if (
