@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
   <head>
-    <title>Timer</title>
+    <title>Timer Client</title>
     <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
+
     <script type="text/javascript" src="client3.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
@@ -11,118 +15,117 @@
 
     <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      .font-timer { font-family: 'Oswald', sans-serif; }
+      .hide-cursor { cursor: none !important; }
+      body { background-color: #0a0a0a; user-select: none; }
+    </style>
   </head>
-  <body x-data="client" class="bg-neutral-900 text-neutral-100 overflow-hidden select-none">
-    
-    <div 
-      x-data="{ 
-        getClockObj() {
-          const now = new Date();
-          return {
-            hm: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            s: String(now.getSeconds()).padStart(2, '0')
-          }
-        },
-        clock: { hm: '', s: '' },
-        hasSecondaryScreen: false,
-        
-        async checkScreens() {
-          try {
-            // Controlla se le API dei dettagli degli schermi sono supportate
-            if ('getScreenDetails' in window || 'windowControlsOverlay' in navigator) {
-              const screenDetails = await window.getScreenDetails();
-              // Se ci sono più di 1 schermo, allora c'è un secondo monitor disponibile
-              this.hasSecondaryScreen = screenDetails.screens.length > 1;
-              
-              // Ascolta se l'utente attacca/stacca monitor in tempo reale
-              screenDetails.addEventListener('screenschange', () => {
-                this.hasSecondaryScreen = screenDetails.screens.length > 1;
-              });
-            }
-          } catch (err) {
-            console.log('Window Management API non autorizzate o non supportate. Uso fallback base.');
-            // Fallback base se i permessi non sono ancora stati dati
-            if (window.screen && window.screen.allScreens) {
-              this.hasSecondaryScreen = true;
-            } else if (window.screen.width > 0) {
-              // Verifica se ci sono indicazioni di monitor estesi basandosi sulle vecchie API
-              this.hasSecondaryScreen = (window.screen.availLeft !== 0 || window.screen.availTop !== 0);
-            }
-          }
-        },
+  <body 
+    x-data="Object.assign(client(), { 
+      getClockObj() {
+        const now = new Date();
+        return {
+          hm: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          s: String(now.getSeconds()).padStart(2, '0')
+        }
+      },
+      clock: { hm: '', s: '' },
+      isFullscreen: false,
+      mouseFermo: false,
+      mouseTimer: null,
+      
+      resetMouseTimer() {
+        this.mouseFermo = false;
+        clearTimeout(this.mouseTimer);
+        this.mouseTimer = setTimeout(() => {
+          if (this.isFullscreen) this.mouseFermo = true;
+        }, 2000);
+      },
 
-        async proiettaSuSecondoSchermo() {
-          try {
-            // Chiede i permessi espliciti per gestire le finestre sui vari monitor
+      async proiettaSuSecondoSchermo() {
+        try {
+          if ('getScreenDetails' in window) {
             const screenDetails = await window.getScreenDetails();
             const secondaryScreen = screenDetails.screens.find(s => !s.isPrimary);
             
             if (secondaryScreen) {
-              // Opzioni di fullscreen puntando esplicitamente al secondo schermo rilevato
-              await document.documentElement.requestFullscreen({
-                screen: secondaryScreen
-              });
-            } else {
-              // Fallback: se non lo trova va in fullscreen sullo schermo corrente
-              await document.documentElement.requestFullscreen();
+              // Forza il fullscreen direttamente sul secondo schermo senza muovere prima la finestra
+              await document.documentElement.requestFullscreen({ screen: secondaryScreen });
+              return;
             }
-          } catch (err) {
-            // Se le API avanzate falliscono o siamo su un browser che non le supporta al 100% (tipo Safari vecchio)
-            // proviamo il fullscreen standard
-            console.error('Errore spostamento avanzato monitor:', err);
-            document.documentElement.requestFullscreen().catch(e => print(e));
           }
+          await document.documentElement.requestFullscreen();
+        } catch (err) {
+          try { await document.documentElement.requestFullscreen(); } catch(e){}
         }
-      }"
-      x-init="clock = getClockObj(); setInterval(() => { clock = getClockObj() }, 1000); checkScreens();"
-      class="w-full h-dvh relative"
-    >
-      
-      <div x-show="hasSecondaryScreen" class="absolute top-4 left-4 z-50 transition-opacity duration-300 hover:opacity-100 opacity-40">
-        <button 
-          @click="proiettaSuSecondoSchermo()" 
-          type="button" 
-          class="flex items-center gap-2 bg-green-600 active:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-lg cursor-pointer"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3.75-3v3M3.75 3.75h16.5M3.75 3.75v11.25c0 .414.336.75.75.75h15a.75.75 0 0 0 .75-.75V3.75m-16.5 0H20.25" />
-          </svg>
-          Proietta su secondo schermo
-        </button>
-      </div>
-
-      <div class="h-full border border-neutral-700 bg-neutral-900 flex flex-col justify-center items-center gap-12">
-        
-        <div class="flex items-center justify-center gap-2 text-center h-16" x-show="isTimerActive">
-          <span
-            class="text-5xl font-bold tracking-wide"
-            :class="[delay?'text-red-500':'text-green-500']"
-            x-text="delay? 'TEMPO SCADUTO' : activeTimer?.name"
-          ></span>
-        </div>
-        
-        <div class="flex font-mono font-bold">
-          <div :class="[delay?'text-red-500':'text-green-500']" class="text-9xl" x-text="mins"></div>
-          <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl px-2">:</div>
-          <div :class="[delay?'text-red-500':'text-green-500']" class="text-8xl" x-text="secs"></div>
-        </div>
-        
-        <div class="w-9/12 rounded-full h-2.5 bg-neutral-800 flex flex-row-reverse overflow-hidden">
-          <div
-            x-show="showBar"
-            :class="[barValue===0?'bg-red-500':'bg-green-500']"
-            class="h-2.5 rounded-full transition-all duration-1000 ease-linear"
-            :style="'width:' + [barValue===0 ? 100 : barValue] + '%'"
-          ></div>
-        </div>
-      </div>
-
-      <div class="absolute bottom-6 right-8 z-50 bg-neutral-950/60 backdrop-blur-md px-4 py-2 border border-neutral-800 rounded-lg shadow-xl flex items-baseline gap-1 select-none">
-        <span class="font-mono text-3xl font-semibold text-neutral-400 tracking-wider" x-text="clock.hm"></span>
-        <span class="font-mono text-xl text-neutral-500">:</span>
-        <span class="font-mono text-xl font-medium text-neutral-500 w-[24px]" x-text="clock.s"></span>
-      </div>
-
+      }
+    })"
+    x-init="
+      clock = getClockObj(); 
+      setInterval(() => { clock = getClockObj() }, 1000);
+      resetMouseTimer();
+      document.addEventListener('fullscreenchange', () => {
+        isFullscreen = !!document.fullscreenElement;
+        if (!isFullscreen) mouseFermo = false;
+      });
+      proiettaSuSecondoSchermo();
+    "
+    @click="proiettaSuSecondoSchermo()"
+    @mousemove="resetMouseTimer()"
+    :class="{ 'hide-cursor': mouseFermo, 'justify-center gap-16': endMeetingMode, 'justify-between py-8': !endMeetingMode }"
+    class="w-full h-dvh relative flex flex-col items-center cursor-pointer select-none transition-all text-neutral-100 overflow-hidden"
+  >
+    
+    <!-- SUGGERIMENTO POPUP -->
+    <div x-show="!isFullscreen" class="absolute top-4 left-4 z-50 text-xs text-neutral-500 bg-neutral-900/60 backdrop-blur-md px-3 py-1.5 border border-neutral-800 rounded pointer-events-none font-mono">
+      💡 Clicca qui sul monitor principale per proiettare sul secondo schermo.
     </div>
+
+    <!-- INTESTAZIONE TITOLO -->
+    <div class="flex items-center justify-center text-center h-20 w-full px-4 font-timer shrink-0">
+      <span
+        class="text-5xl md:text-6xl lg:text-8xl font-bold tracking-wide uppercase transition-all"
+        :class="[endMeetingMode ? 'text-slate-400 font-medium tracking-widest' : (delay ? 'text-red-500 animate-pulse' : 'text-green-500')]"
+        x-text="endMeetingMode ? 'BUONA SERATA' : (delay ? 'TEMPO SCADUTO' : activeTimer?.name)"
+      ></span>
+    </div>
+    
+    <!-- CASO STANDARD: SCADENZIARIO E BARRA -->
+    <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-8">
+      <div class="flex font-timer font-bold select-none items-baseline">
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[16vw] leading-none transition-colors" x-text="mins"></div>
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none px-4 transition-colors">:</div>
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none transition-colors" x-text="secs"></div>
+      </div>
+      
+      <div class="w-9/12 rounded-full h-3 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden">
+        <div
+          x-show="showBar"
+          :class="[barValue === 0 ? 'bg-red-500' : 'bg-green-500']"
+          class="h-full rounded-full transition-all duration-1000 ease-linear"
+          :style="'width:' + [barValue === 0 ? 100 : barValue] + '%'"
+        ></div>
+      </div>
+    </div>
+
+    <!-- CASO FINE ADUNANZA: MAXI OROLOGIO CENTRATO -->
+    <div x-show="endMeetingMode" class="flex items-center justify-center flex-grow">
+      <div class="bg-neutral-900/40 backdrop-blur-md px-16 py-10 border border-neutral-800 rounded-3xl flex items-baseline select-none font-mono font-bold tracking-tight shadow-2xl">
+        <span class="text-7xl md:text-8xl lg:text-9xl text-slate-400 tabular-nums leading-none" x-text="clock.hm"></span>
+        <span class="text-6xl md:text-7xl lg:text-8xl mx-4 text-slate-500/40 leading-none">:</span>
+        <span class="text-5xl md:text-6xl lg:text-7xl w-[85px] md:w-[110px] text-left text-slate-500/60 tabular-nums leading-none" x-text="clock.s"></span>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR OROLOGIO ANGOLARE -->
+    <div x-show="!endMeetingMode" class="w-full flex justify-end items-end px-12 pb-4 shrink-0">
+      <div class="bg-neutral-900/50 backdrop-blur-md px-8 py-4 border border-neutral-800 rounded-2xl flex items-baseline select-none font-mono font-bold tracking-tight shadow-2xl">
+        <span class="text-6xl md:text-7xl lg:text-8xl text-slate-400 tabular-nums leading-none" x-text="clock.hm"></span>
+        <span class="text-5xl md:text-6xl lg:text-7xl mx-2 text-slate-500/60 leading-none">:</span>
+        <span class="text-4xl md:text-5xl lg:text-6xl w-[55px] md:w-[70px] text-left text-slate-500/80 tabular-nums leading-none" x-text="clock.s"></span>
+      </div>
+    </div>
+
   </body>
 </html>

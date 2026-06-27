@@ -10,37 +10,36 @@ import webbrowser
 from threading import Timer
 import sys
 
-# --- CONFIGURAZIONE PERCORSI PER PYINSTALLER ---
 if getattr(sys, 'frozen', False):
-    # Se il programma viene eseguito come file .exe compilato
     base_path = sys._MEIPASS
 else:
-    # Se viene eseguito normalmente come script Python (.py)
     base_path = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__, static_folder=os.path.join(base_path, "fe"))
-MEETING_FILE = "queue.json"  # Rimane locale nella cartella di esecuzione per salvare lo stato
-clients = []
 
+if os.name == 'nt':
+    appdata_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'TimerSincronizzato')
+else:
+    appdata_dir = os.path.expanduser('~/.timersincronizzato')
+
+os.makedirs(appdata_dir, exist_ok=True)
+MEETING_FILE = os.path.join(appdata_dir, "queue.json")
+
+clients = []
 
 def save_meeting(data):
     with open(MEETING_FILE, "w") as f:
         json.dump(data, f)
 
-
 def load_meeting():
-    current_wday = time.localtime().tm_wday
-    # Capiamo quale tipo di adunanza dovrebbe esserci oggi
-    expected_template = "infrasettimanale_std" if current_wday < 5 else "fine_settimana_std"
-    
     try:
-        with open(MEETING_FILE, "r") as f:
-            data = json.load(f)
-            # CONTROLLO CRUCIALE: Se il file esiste ma contiene l'adunanza sbagliata per oggi, forza il reset
-            if data.get("name") != expected_template:
-                print(f"Rilevato cambio adunanza (attesa: {expected_template}). Rigenero...")
-                return get_default_meeting()
-            return data
+        if os.path.exists(MEETING_FILE):
+            with open(MEETING_FILE, "r") as f:
+                return json.load(f)
+        else:
+            default_data = get_default_meeting()
+            save_meeting(default_data)
+            return default_data
     except Exception as e:
         print(f"Impossibile leggere {MEETING_FILE} ({e}), genero il default...")
         return get_default_meeting()
@@ -57,62 +56,46 @@ def get_default_meeting():
     else:
         data = next(x for x in templates if x["name"] == "fine_settimana_std")
     
+    # Inizializza il flag fine adunanza a falso se non è presente
+    if "endMeetingMode" not in data:
+        data["endMeetingMode"] = False
+
     if data["name"] == "infrasettimanale_std":
         try:
-            # Chiamata allo scraper
             timers_dinamici = estrai_programma_con_titoli()
             if timers_dinamici:
-                # Sincronizza l'inizio del primo timer con il conferenceStart del template
                 timers_dinamici[0]['start'] = data['conferenceStart']
-                
-                # Iniettiamo i timer estratti
                 data["timers"] = timers_dinamici
-                
-                # Calcola a cascata tutti i campi 'start' ed 'end' corretti
                 data = refresh_meeting(data)
         except Exception as e:
             print(f"Fallback attivo. Errore automazione scraper: {e}")
             
     return data
 
-# chiamate pagine html
-
-
 @app.route("/")
 def client():
     return send_from_directory(os.path.join(base_path, "fe"), "client.html")
-
 
 @app.route("/admin")
 def admin():
     return send_from_directory(os.path.join(base_path, "fe"), "admin.html")
 
-# chiamate timer
 @app.route("/api/templates", methods=["GET"])
 def get_templates():
     path_templates = os.path.join(base_path, "templates.json")
     with open(path_templates, "r") as f:
         return jsonify(json.load(f))
 
-
 @app.route("/api/meeting/start", methods=["GET"])
 def get_start():
-    # 1. Generiamo il meeting di default (eseguendo lo scraper se infrasettimanale)
     default_meeting = get_default_meeting()
-    
-    # 2. Aggiorniamo subito il file di stato corrente del server
     save_meeting(default_meeting)
-    
-    # 3. Mandiamo il broadcast SSE ai client connessi per aggiornare i display in tempo reale
     broadcast_message(json.dumps(default_meeting))
-    
-    # 4. Rispondiamo al chiamante
     return jsonify(default_meeting)
 
 @app.route("/api/meeting", methods=["GET"])
 def get_meeting():
     return jsonify(load_meeting())
-
 
 @app.route("/api/meeting", methods=["POST"])
 def post_meeting():
@@ -138,15 +121,16 @@ def refresh_meeting(data):
     conference_end = get_seconds(data['conferenceEnd'])
     conference_start = get_seconds(data['timers'][0]['start'])
 
+    # Mantiene lo stato di Fine Adunanza durante i refresh
+    if "endMeetingMode" not in data:
+        data["endMeetingMode"] = False
+
     for timer in data['timers']:
         if 'duration' not in timer:
             timer['duration'] = timer['maxDuration']
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
-    # --- FIX CRUCIALE PER IL BOOTSTRAP/RESET ---
-    # Se NON ci sono timer attivi, calcoliamo comunque la timeline iniziale 
-    # partendo da 0 (il primo timer) e distribuendo gli orari linearmente.
     if active_index is None:
         current_time = conference_start
         for timer in data['timers']:
@@ -154,7 +138,6 @@ def refresh_meeting(data):
             current_time += timer['duration']
             timer['end'] = format_time(current_time)
         return data
-    # --------------------------------------------
     
     max_id = max(t['id'] for t in data['timers']) 
     for i, timer in enumerate(data['timers']):
@@ -164,10 +147,9 @@ def refresh_meeting(data):
     actual_end = conference_start + total_duration
     
     if abs(actual_end - conference_end) <= 60:
-        return data  # Già in orario con tolleranza
+        return data
 
     time_difference = conference_end - actual_end  
-    
     adjustable_timers = [t for t in data['timers'][active_index:] if t['maxDuration'] > 300]
     
     if not adjustable_timers:
@@ -189,8 +171,6 @@ def refresh_meeting(data):
 
     return data
 
-
-
 @app.route("/stream")
 def stream():
     def event_stream(q):
@@ -202,7 +182,8 @@ def stream():
                 except Empty:
                     yield ":\n\n" 
         finally:
-            clients.remove(q)
+            if q in clients:
+                clients.remove(q)
     
     q = Queue()
     clients.append(q)
@@ -211,14 +192,11 @@ def stream():
                              "Connection": "keep-alive",
                              "Content-Type": "text/event-stream"})
 
-
 @app.route("/<path:filename>")
 def static_files(filename):
     return send_from_directory(os.path.join(base_path, "fe"), filename)
 
-
 def get_local_ip():
-    """Recupera dinamicamente l'IP locale del PC"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -228,28 +206,21 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
-
 def open_browser_tabs():
-    """Apre in sequenza le schede del client e dell'admin"""
+    """Apre SOLO l'interfaccia dell'admin all'avvio dell'applicazione"""
     port = 1914
     ip_pc = get_local_ip()
+    url_admin_local = f"http://127.0.0.1:{port}/admin"
     
-    url_client = f"http://{ip_pc}:{port}/"
-    url_admin = f"http://{ip_pc}:{port}/admin"
+    print(f"\n[Browser] Lancio automatico del solo pannello Admin su: {url_admin_local}")
+    print(f"[Rete Locale] Regia sul secondo schermo configurabile da remoto a: http://{ip_pc}:{port}/\n")
     
-    print(f"\n[Browser] Lancio automatico client: {url_client}")
-    print(f"[Browser] Lancio automatico admin: {url_admin}\n")
-    
-    webbrowser.open(url_client)
-    time.sleep(0.4)
-    webbrowser.open(url_admin)
-
+    webbrowser.open(url_admin_local)
 
 if __name__ == "__main__":
-    save_meeting(get_default_meeting())
+    current_meeting = load_meeting()
+    if current_meeting:
+        save_meeting(refresh_meeting(current_meeting))
     
-    # Pianifica l'apertura delle schede poco dopo l'avvio del server
     Timer(1.5, open_browser_tabs).start()
-    
-    # debug=False per evitare doppi avvii e doppi link aperti dal reloader di Flask
     app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)
