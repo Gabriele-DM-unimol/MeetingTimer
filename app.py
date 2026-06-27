@@ -121,7 +121,6 @@ def refresh_meeting(data):
     conference_end = get_seconds(data['conferenceEnd'])
     conference_start = get_seconds(data['timers'][0]['start'])
 
-    # Mantiene lo stato di Fine Adunanza durante i refresh
     if "endMeetingMode" not in data:
         data["endMeetingMode"] = False
 
@@ -131,6 +130,7 @@ def refresh_meeting(data):
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
+    # Se nessun timer è attivo, ricalcola i tempi sequenzialmente dall'inizio della conferenza
     if active_index is None:
         current_time = conference_start
         for timer in data['timers']:
@@ -139,9 +139,8 @@ def refresh_meeting(data):
             timer['end'] = format_time(current_time)
         return data
     
-    max_id = max(t['id'] for t in data['timers']) 
-    for i, timer in enumerate(data['timers']):
-        timer['id'] = (max_id if max_id else 0) + i + 1
+    # --- RIMOZIONE BUG MUTAZIONE ID ---
+    # Gli ID devono rimanere stabili. Ricalcoliamo solo la ripartizione del tempo.
     
     total_duration = sum(t['duration'] for t in data['timers']) 
     actual_end = conference_start + total_duration
@@ -163,6 +162,7 @@ def refresh_meeting(data):
         new_duration = min(timer['maxDuration'], max(300, new_duration))
         timer['duration'] = new_duration
     
+    # Ricalcola start ed end per i timer rimanenti mantenendo la fluidità
     current_time = get_seconds(data['timers'][active_index]['start'])
     for timer in data['timers'][active_index:]:
         timer['start'] = format_time(current_time)
@@ -170,7 +170,6 @@ def refresh_meeting(data):
         timer['end'] = format_time(current_time)
 
     return data
-
 @app.route("/stream")
 def stream():
     def event_stream(q):
