@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 
     <script type="text/javascript" src="admin3.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
@@ -64,7 +63,7 @@
               </div>
             </div>
 
-            <!-- PULSANTI -->
+            <!-- PULSANTI CONTROLLO -->
             <div class="grid grid-cols-5 gap-2 mt-4">
               <button type="button" :disabled="!isTimerActive || endMeetingMode" @click="back(); startCountdown(); postTimers()" class="min-h-[48px] flex items-center justify-center border border-neutral-700 bg-neutral-900 rounded active:bg-neutral-800 disabled:opacity-40 custom-touch-target">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-6 fill-white"><path d="m4.5 18.75 7.5-7.5 7.5 7.5M4.5 12.75l7.5-7.5 7.5 7.5"/></svg>
@@ -76,7 +75,6 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-6 fill-white"><path d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"/></svg>
               </button>
               
-              <!-- NUOVO PULSANTE APRI SECONDO SCHERMO -->
               <button type="button" @click="apriFinestraClient()" class="min-h-[48px] text-[11px] px-1 font-medium flex flex-col items-center justify-center border border-amber-600 bg-amber-950/20 text-amber-400 rounded active:bg-amber-900/40 custom-touch-target transition-all">
                 <span>Attiva</span>
                 <span>2° schermo</span>
@@ -90,6 +88,7 @@
 
           <!-- LISTA PROGRAMMA -->
           <div class="w-full mt-4 space-y-4">
+            <!-- Timer Passati (Non Modificabili) -->
             <ul class="w-full space-y-2">
               <template x-for="timer in slicedTimers[0]" :key="timer.id">
                 <li class="flex items-center justify-between p-2 border border-neutral-800 bg-neutral-900/40 opacity-70 rounded">
@@ -99,19 +98,39 @@
               </template>
             </ul>
 
-            <ul class="w-full space-y-2" x-sort:config="{ handle: '[x-sort\\:handle]' }" x-sort="handle($item, $position)">
-              <template x-for="timer in slicedTimers[1]" :key="timer.id">
-                <li x-sort:item="timer.id" :class="[timer.active ? 'border-green-500 bg-green-950/10' : 'border-neutral-800 bg-neutral-900']" class="flex items-center gap-2 p-2 border rounded min-h-[54px]">
-                  <div x-show="!timer.active" class="cursor-move p-2 text-neutral-500 hover:text-neutral-300 min-w-[34px]" x-sort:handle>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+            <!-- Coda Timer Attivi/Futuri (Modificabili tramite Frecce) -->
+            <ul class="w-full space-y-2">
+              <template x-for="(timer, index) in slicedTimers[1]" :key="timer.id">
+                <li :class="[timer.active ? 'border-green-500 bg-green-950/10' : 'border-neutral-800 bg-neutral-900']" class="flex items-center gap-2 p-2 border rounded min-h-[54px]">
+                  
+                  <!-- SUT DI FRECCE (SU / GIÙ) -->
+                  <div class="flex flex-col justify-center items-center gap-0.5 shrink-0 min-w-[32px]">
+                    <!-- Freccia SU -->
+                    <button type="button" 
+                            :disabled="timer.active || index === 0" 
+                            @click="moveUp(index)"
+                            class="p-1 text-neutral-400 hover:text-white disabled:opacity-15 active:scale-95 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5"><path fill-rule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.58a.75.75 0 1 1-1.08-1.04l5.25-5.25a.75.75 0 0 1 1.08 0l5.25 5.25a.75.75 0 1 1-1.08 1.04L10.75 5.612V16.25A.75.75 0 0 1 10 17Z" clip-rule="evenodd" /></svg>
+                    </button>
+                    <!-- Freccia GIÙ -->
+                    <button type="button" 
+                            :disabled="timer.active || index === slicedTimers[1].length - 1" 
+                            @click="moveDown(index)"
+                            class="p-1 text-neutral-400 hover:text-white disabled:opacity-15 active:scale-95 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5"><path fill-rule="evenodd" d="M10 3a.75.75 0 0 1 .75.75v10.638l4.022-3.968a.75.75 0 1 1 1.05 1.07l-5.304 5.23a.75.75 0 0 1-1.036 0L4.178 11.49a.75.75 0 1 1 1.05-1.07l4.022 3.968V3.75A.75.75 0 0 1 10 3Z" clip-rule="evenodd" /></svg>
+                    </button>
                   </div>
+
+                  <!-- CONTENUTO DEL TIMER -->
                   <input x-model="timer.name" @change="postTimers()" type="text" class="w-full text-base px-2 py-1 bg-transparent border border-transparent focus:border-neutral-700 rounded text-white" />
-                  <span class="px-2 py-1 text-sm font-mono bg-neutral-950 rounded text-neutral-400 min-w-[55px] text-center" x-text="getSecondsString(timer.duration)"></span>
+                  <span class="px-2 py-1 text-sm font-mono bg-neutral-950 rounded text-neutral-400 min-w-[55px] text-center" x-text="getSecondsString(timer.duration || timer.maxDuration)"></span>
+                  
                   <div class="flex items-center border border-neutral-700 rounded bg-neutral-950 overflow-hidden shrink-0">
-                    <button type="button" :disabled="timer.active" x-on:click="timer.maxDuration = Math.max(min*60, timer.maxDuration - 60); postTimers()" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
+                    <button type="button" :disabled="timer.active" x-on:click="timer.maxDuration = Math.max(min*60, timer.maxDuration - 60); timer.duration = timer.maxDuration; postTimers()" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
                     <span class="w-10 text-center text-sm font-mono font-bold text-green-500" x-text="Math.floor(timer.maxDuration / 60)"></span>
-                    <button type="button" :disabled="timer.active || meetingInDelay" x-on:click="timer.maxDuration = Math.min(max*60, timer.maxDuration + 60); postTimers();" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
+                    <button type="button" :disabled="timer.active || meetingInDelay" x-on:click="timer.maxDuration = Math.min(max*60, timer.maxDuration + 60); timer.duration = timer.maxDuration; postTimers();" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
                   </div>
+                  
                   <button type="button" :disabled="timer.active" @click="deleteTimer(timer); postTimers()" class="p-2 text-red-500 hover:bg-red-950/30 active:bg-red-950/60 rounded disabled:opacity-20 custom-touch-target shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                   </button>
@@ -130,7 +149,6 @@
         <div class="w-full lg:w-1/2 h-[45dvh] lg:h-dvh overflow-hidden order-1 lg:order-2">
           <div :class="endMeetingMode ? 'justify-center gap-0' : 'justify-between py-6'" class="h-full border border-neutral-800 bg-[#0a0a0a] flex flex-col items-center p-4 rounded lg:rounded-none relative transition-all">
             
-            <!-- INTESTAZIONE TITOLO (SOLO SE NON È FINE ADUNANZA) -->
             <div x-show="!endMeetingMode" class="flex items-center justify-center text-center h-16 w-full px-4 font-timer shrink-0">
               <span
                 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-wide uppercase transition-all"
@@ -139,7 +157,6 @@
               ></span>
             </div>
             
-            <!-- CASO STANDARD: SCADENZIARIO E BARRA -->
             <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-4">
               <div class="flex font-timer font-bold select-none items-baseline">
                 <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-7xl lg:text-8xl leading-none transition-colors" x-text="mins"></div>
@@ -157,14 +174,11 @@
               </div>
             </div>
 
-            <!-- CASO FINE ADUNANZA: TITOLO ARANCIONE 400 + DIVISORE + OROLOGIO CHIARO -->
             <div x-show="endMeetingMode" class="flex flex-col items-center justify-center flex-grow gap-2">
               <div class="font-timer font-bold tracking-wider uppercase text-4xl lg:text-6xl leading-none text-orange-400 text-center">
                 BUONA SERATA
               </div>
-              
               <div class="w-4/5 max-w-md border-t border-orange-400/30 my-2"></div>
-              
               <div class="flex items-baseline select-none font-mono font-bold tracking-widest">
                 <span class="text-6xl lg:text-8xl text-orange-400 tabular-nums leading-none" x-text="clock.hm"></span>
                 <span class="text-5xl lg:text-7xl mx-3 text-orange-400/50 leading-none">:</span>
@@ -172,16 +186,13 @@
               </div>
             </div>
 
-            <!-- BOTTOM BAR OROLOGIO ANGOLARE (MANTIENE IL COLORE ARANCIONE 400) -->
             <div x-show="!endMeetingMode" class="w-full flex justify-end items-end px-4 pb-2 shrink-0">
               <div class="relative bg-black px-4 py-2 border border-orange-400/40 rounded-xl flex items-center select-none font-mono font-bold tracking-wider gap-2 outline outline-2 outline-orange-950/20 outline-offset-2">
-                
                 <div class="text-orange-400/70 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-6 h-6 lg:w-7 lg:h-7">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
                 </div>
-
                 <div class="flex items-baseline">
                   <span class="text-2xl lg:text-3xl text-orange-400 tabular-nums leading-none" x-text="clock.hm"></span>
                   <span class="text-xl lg:text-2xl mx-1 text-orange-400/30 leading-none">:</span>
