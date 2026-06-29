@@ -87,18 +87,18 @@
       <span
         class="text-5xl md:text-6xl lg:text-8xl font-bold tracking-wide uppercase transition-all"
         :class="[delay ? 'text-red-500 animate-pulse' : 'text-green-500']"
-        x-text="activeTimer?.name"
+        x-text="delay ? 'TEMPO SCADUTO' : activeTimer?.name"
       ></span>
     </div>
-    
+
     <!-- CASO STANDARD: SCADENZIARIO E BARRA -->
     <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-8">
-      <div class="flex font-timer font-bold select-none items-baseline">
+        <div class="flex font-timer font-bold select-none items-baseline">
         <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[16vw] leading-none transition-colors" x-text="mins"></div>
         <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none px-4 transition-colors">:</div>
         <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none transition-colors" x-text="secs"></div>
-      </div>
-      
+        </div>
+
       <div class="w-9/12 rounded-full h-3 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden">
         <div
           x-show="showBar"
