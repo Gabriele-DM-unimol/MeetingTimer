@@ -119,6 +119,7 @@ def broadcast_message(message):
 
 def refresh_meeting(data):
     def get_seconds(time_str):
+        if not time_str: return 0
         h, m, s = map(int, time_str.split(':'))
         return h * 3600 + m * 60 + s
     
@@ -126,57 +127,79 @@ def refresh_meeting(data):
         h, m, s = int(seconds // 3600), int((seconds % 3600) // 60), int(seconds % 60)
         return f"{h:02}:{m:02}:{s:02}"
         
-    conference_end = get_seconds(data['conferenceEnd'])
     conference_start = get_seconds(data['timers'][0]['start'])
-
-    if "endMeetingMode" not in data:
-        data["endMeetingMode"] = False
-
-    for timer in data['timers']:
-        if 'maxDuration' not in timer or 'duration' not in timer:
-            try:
-                durata_stimata = get_seconds(timer['end']) - get_seconds(timer['start'])
-                if 'maxDuration' not in timer:
-                    timer['maxDuration'] = durata_stimata
-                if 'duration' not in timer:
-                    timer['duration'] = durata_stimata
-            except Exception:
-                timer['maxDuration'] = 60
-                timer['duration'] = 60
-        
-        if 'duration' not in timer:
-            timer['duration'] = timer['maxDuration']
+    
+    # Il limite massimo invalicabile: Inizio Effettivo + 105 minuti (6300 secondi)
+    MAX_TOTAL_DURATION = 105 * 60 
+    max_conference_end = conference_start + MAX_TOTAL_DURATION
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
+    # Se nessun timer è attivo, timeline lineare standard
     if active_index is None:
         current_time = conference_start
         for timer in data['timers']:
             timer['start'] = format_time(current_time)
-            current_time += timer['duration']
+            current_time += timer.get('duration', timer.get('maxDuration', 60))
             timer['end'] = format_time(current_time)
         return data
     
-    total_duration = sum(t['duration'] for t in data['timers']) 
-    actual_end = conference_start + total_duration
-    
-    if abs(actual_end - conference_end) <= 60:
-        return data
+    # 1. Congeliamo i timer passati con la loro durata REALE consumata
+    current_time = conference_start
+    for i in range(active_index):
+        t = data['timers'][i]
+        t['start'] = format_time(current_time)
+        current_time += t['duration']
+        t['end'] = format_time(current_time)
 
-    time_difference = conference_end - actual_end  
-    adjustable_timers = [t for t in data['timers'][active_index:] if t['maxDuration'] > 300]
+    # 2. Impostiamo lo start del timer attivo corrente
+    data['timers'][active_index]['start'] = format_time(current_time)
     
-    if not adjustable_timers:
-        return data
+    # Calcoliamo il tempo che rimarrebbe alla fine della parte attiva corrente
+    time_after_active = current_time + data['timers'][active_index]['duration']
     
-    total_adjustable_duration = sum(t['maxDuration'] for t in adjustable_timers)
+    # 3. COMPENSAZIONE PROPORZIONALE: Scatta solo sulle parti STRETTAMENTE FUTURE
+    future_index = active_index + 1
+    if future_index < len(data['timers']):
+        # Quanto tempo teorico ci rimarrebbe prima di sforare i 105 minuti?
+        remaining_budget = max_conference_end - time_after_active
+        
+        # Somma delle maxDuration di tutti i timer futuri configurati
+        total_future_max_duration = sum(t['maxDuration'] for t in data['timers'][future_index:])
+        
+        # Se stiamo sforando il budget totale (o se il tempo rimasto differisce dal nominale richiesto)
+        if remaining_budget < total_future_max_duration:
+            # Identifichiamo solo i timer futuri che durano più di 5 minuti (300 secondi)
+            adjustable_timers = [t for t in data['timers'][future_index:] if t['maxDuration'] > 300]
+            
+            if adjustable_timers:
+                # Calcoliamo quanta durata nominale totale hanno i timer sacrificabili
+                total_adjustable_max = sum(t['maxDuration'] for t in adjustable_timers)
+                # Durata totale dei timer che NON possiamo toccare (quelli già sotto i 5 minuti)
+                non_adjustable_max = total_future_max_duration - total_adjustable_max
+                
+                # Il budget effettivo da spartire tra i timer modificabili
+                budget_for_adjustable = remaining_budget - non_adjustable_max
+                
+                # Distribuzione proporzionale del budget rimasto
+                for timer in adjustable_timers:
+                    if total_adjustable_max > 0:
+                        # Quota proporzionale basata sul peso del timer rispetto agli altri modificabili
+                        proportion = timer['maxDuration'] / total_adjustable_max
+                        nuova_durata = int(budget_for_adjustable * proportion)
+                        
+                        # Garantiamo comunque un minimo invalicabile di 300 secondi (5 min) come da specifica
+                        timer['duration'] = max(300, nuova_durata)
+            else:
+                # Se non ci sono timer > 300s da sacrificare, mantengono la maxDuration
+                for t in data['timers'][future_index:]:
+                    t['duration'] = t['maxDuration']
+        else:
+            # Se siamo larghi coi tempi e non stiamo sforando i 105 minuti, i futuri tornano/restano standard
+            for t in data['timers'][future_index:]:
+                t['duration'] = t['maxDuration']
     
-    for timer in adjustable_timers:
-        adjustment = (timer['maxDuration'] / total_adjustable_duration if total_adjustable_duration else 0) * time_difference
-        new_duration = int(timer['maxDuration'] + adjustment)
-        new_duration = min(timer['maxDuration'], max(300, new_duration))
-        timer['duration'] = new_duration
-    
+    # 4. Rigeneriamo i timestamp grafici di start/end per la parte attiva e future
     current_time = get_seconds(data['timers'][active_index]['start'])
     for timer in data['timers'][active_index:]:
         timer['start'] = format_time(current_time)

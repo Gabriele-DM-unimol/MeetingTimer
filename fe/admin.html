@@ -93,11 +93,13 @@
               <template x-for="timer in slicedTimers[0]" :key="timer.id">
                 <li class="flex items-center justify-between p-2 border border-neutral-800 bg-neutral-900/40 opacity-70 rounded">
                   <input x-model="timer.name" disabled type="text" class="w-full text-base px-2 py-1 bg-transparent border-none text-neutral-400" />
-                  <span class="px-2 py-1 text-sm font-mono text-neutral-500" x-text="getSecondsString(timer.duration)"></span>
+                  <div class="px-2 py-1 text-xs font-mono text-neutral-500 flex items-center gap-1.5 shrink-0">
+                    <span class="text-green-500 font-bold" x-text="'[' + getSecondsString(timer.duration) + ']'"></span>
+                    <span x-text="'(prevista ' + getSecondsString(timer.maxDuration) + ')'"></span>
+                  </div>
                 </li>
               </template>
             </ul>
-
             <!-- Coda Timer Attivi/Futuri (Modificabili tramite Frecce con Animazione Fluida) -->
             <ul class="w-full space-y-2 relative">
               <template x-for="(timer, index) in slicedTimers[1]" :key="timer.id">
@@ -130,9 +132,50 @@
                   <span class="px-2 py-1 text-sm font-mono bg-neutral-950 rounded text-neutral-400 min-w-[55px] text-center" x-text="getSecondsString(timer.duration || timer.maxDuration)"></span>
                   
                   <div class="flex items-center border border-neutral-700 rounded bg-neutral-950 overflow-hidden shrink-0">
-                    <button type="button" :disabled="timer.active" x-on:click="timer.maxDuration = Math.max(min*60, timer.maxDuration - 60); timer.duration = timer.maxDuration; postTimers()" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
+                    <!-- PULSANTE MENO -->
+                    <button type="button" :disabled="timer.active" x-on:click="timer.maxDuration = Math.max(60, timer.maxDuration - 60); timer.duration = timer.maxDuration; postTimers()" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
+                    
+                    <!-- MINUTI CORRENTI -->
                     <span class="w-10 text-center text-sm font-mono font-bold text-green-500" x-text="Math.floor(timer.maxDuration / 60)"></span>
-                    <button type="button" :disabled="timer.active || meetingInDelay" x-on:click="timer.maxDuration = Math.min(max*60, timer.maxDuration + 60); timer.duration = timer.maxDuration; postTimers();" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
+                    <!-- PULSANTE PIÙ -->
+                    <button type="button" 
+                      :disabled="timer.active || meetingInDelay" 
+                      x-on:click="
+                        let limiteMassimoSecondi = 105 * 60;
+
+                        if (isTimerActive && timers[0]?.start) {
+                          // 1. Recuperiamo lo start assoluto del primo timer (Inizio Reale dell'adunanza)
+                          let inizioRealeMeeting = timers[0].start.getTime();
+                          let orarioMassimoFine = inizioRealeMeeting + (limiteMassimoSecondi * 1000);
+
+                          // 2. Calcoliamo la durata totale che l'adunanza avrebbe dopo questo incremento:
+                          // - Per i passati (slicedTimers[0]): usiamo la loro 'duration' reale già consumata
+                          let durataPassati = slicedTimers[0].reduce((sum, t) => sum + t.duration, 0);
+
+                          // - Per i futuri/attivi (slicedTimers[1]): sommiamo le loro maxDuration nominali
+                          //   aggiungendo già i 60 secondi al timer che stiamo cercando di incrementare
+                          let durataFuturi = slicedTimers[1].reduce((sum, t) => sum + (t.id === timer.id ? t.maxDuration + 60 : t.maxDuration), 0);
+
+                          let proiezioneFineMeeting = inizioRealeMeeting + ((durataPassati + durataFuturi) * 1000);
+
+                          if (proiezioneFineMeeting > orarioMassimoFine) {
+                            alert('Attenzione: Aumentando questa parte supereresti l\'orario massimo di chiusura (Inizio Reale + 105 minuti)!');
+                            return;
+                          }
+                        } else {
+                          // Se NON è ancora partito, usiamo il controllo standard sul cumulo delle maxDuration nominali
+                          let sommaAttualeSecondi = timers.reduce((sum, t) => sum + (t.id === timer.id ? t.maxDuration + 60 : t.maxDuration), 0);
+                          if (sommaAttualeSecondi > limiteMassimoSecondi) {
+                            alert('Attenzione: Il totale delle parti configurate non può superare i 105 minuti!');
+                            return;
+                          }
+                        }
+
+                        timer.maxDuration = timer.maxDuration + 60; 
+                        timer.duration = timer.maxDuration; 
+                        postTimers();
+                      " 
+                      class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
                   </div>
                   
                   <button type="button" :disabled="timer.active" @click="deleteTimer(timer); postTimers()" class="p-2 text-red-500 hover:bg-red-950/30 active:bg-red-950/60 rounded disabled:opacity-20 custom-touch-target shrink-0">

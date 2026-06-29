@@ -116,19 +116,6 @@ document.addEventListener("alpine:init", () => {
       this.postTimers();
     },
 
-    addTimer() {
-      this.timers.push({
-        id: Math.max.apply(Math, this.timers.map((timer) => timer.id)) + 1,
-        duration: this.insertingDuration * 60,
-        maxDuration: this.insertingDuration * 60,
-        name: this.insertingName,
-        active: false,
-      });
-      this.insertingDuration = 10;
-      this.insertingName = "Parte";
-      this.postTimers();
-    },
-
     get calculatedEnd() {
       const forward = this.slicedTimers[1];
       if (forward.length > 0) {
@@ -283,16 +270,30 @@ document.addEventListener("alpine:init", () => {
       if (this.isTimerActive) {
         const activeTimer = this.timers.indexOf(this.timers.find((timer) => timer.active));
         const nextTimer = this.timers.length > activeTimer + 1 ? activeTimer + 1 : undefined;
-        this.timers[activeTimer].active = false;
+
+        const current = this.timers[activeTimer];
+        current.active = false;
+        current.end = new Date();
+
+        // Calcola i secondi effettivi passati e fissali
+        const secondiEffettivi = Math.floor((current.end.getTime() - current.start.getTime()) / 1000);
+        current.duration = Math.max(1, secondiEffettivi); 
+
         if (nextTimer !== undefined) {
-          this.timers[activeTimer].end = new Date();
           this.timers[nextTimer].active = true;
           this.timers[nextTimer].start = new Date();
+          this.timers[nextTimer].end = undefined;
+          this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
         }
+
+        this.postTimers();
       } else {
         if (this.timers.length > 0) {
           this.timers[0].active = true;
           this.timers[0].start = new Date();
+          this.timers[0].end = undefined;
+          this.timers[0].duration = this.timers[0].maxDuration;
+          this.postTimers();
         }
       }
     },
@@ -301,12 +302,63 @@ document.addEventListener("alpine:init", () => {
       if (this.isTimerActive) {
         const activeTimer = this.timers.indexOf(this.timers.find((timer) => timer.active));
         const prevTimer = activeTimer > 0 ? activeTimer - 1 : undefined;
-        this.timers[activeTimer].active = false;
+        
         if (prevTimer !== undefined) {
+          // Spegni il timer corrente
+          this.timers[activeTimer].active = false;
+          this.timers[activeTimer].end = undefined;
+          this.timers[activeTimer].duration = this.timers[activeTimer].maxDuration;
+          
+          // Ripristina la parte precedente come attiva
           this.timers[prevTimer].active = true;
-          this.timers[prevTimer].start = new Date();
+          // IMPORTANTE: Manteniamo il suo start originario così il calcolo del tempo passato non si rompe!
+          if (!this.timers[prevTimer].start) {
+            this.timers[prevTimer].start = new Date();
+          }
+          this.timers[prevTimer].end = undefined;
+          this.timers[prevTimer].duration = this.timers[prevTimer].maxDuration;
+          
+          this.postTimers();
         }
-      } else return;
+      }
+    },
+
+    addTimer() {
+      const durataNuovaParteSecondi = this.insertingDuration * 60;
+      const sommaAttualeSecondi = this.timers.reduce((sum, t) => sum + t.maxDuration, 0);
+
+      if (this.isTimerActive && this.timers[0]?.start) {
+        // Se il meeting è già in corso, calcola il timestamp di fine assoluto (Inizio Reale + 105 min)
+        const orarioMassimoFine = this.timers[0].start.getTime() + (105 * 60 * 1000);
+        
+        // FIX: Usiamo direttamente l'array slicedTimers di questa istanza
+        const forward = this.slicedTimers[1];
+        const inizioPrimoTimerFuturo = forward[0]?.start?.getTime() || Date.now();
+        const durataCodaFuturaEsistente = forward.reduce((sum, t) => sum + t.maxDuration, 0);
+        const proiezioneFineMeeting = inizioPrimoTimerFuturo + ((durataCodaFuturaEsistente + durataNuovaParteSecondi) * 1000);
+
+        if (proiezioneFineMeeting > orarioMassimoFine) {
+          alert('Attenzione: Non puoi aggiungere questa parte. Supereresti l\'orario massimo di chiusura calcolato dall\'inizio reale (+105 min)!');
+          return;
+        }
+      } else {
+        // Se non è ancora partito, verifichiamo solo il cumulo dei minuti nominali
+        if (sommaAttualeSecondi + durataNuovaParteSecondi > 105 * 60) {
+          alert('Attenzione: Non puoi aggiungere questa parte. Il tempo totale configurato supererebbe i 105 minuti!');
+          return;
+        }
+      }
+
+      this.timers.push({
+        id: Math.max.apply(Math, this.timers.map((timer) => timer.id)) + 1,
+        duration: durataNuovaParteSecondi,
+        maxDuration: durataNuovaParteSecondi,
+        name: this.insertingName,
+        active: false,
+      });
+      this.insertingDuration = 10;
+      this.insertingName = "Parte";
+      this.postTimers();
     },
 
     get slicedTimers() {
@@ -368,9 +420,10 @@ document.addEventListener("alpine:init", () => {
           id: timer.id,
           name: timer.name,
           start: timer.start?.toTimeString().slice(0, 8),
-          end: undefined,
+          end: timer.end ? timer.end.toTimeString().slice(0, 8) : undefined, 
           active: timer.active,
-          duration: undefined,
+          // Se è la parte attiva, mantiene la sua duration corrente, altrimenti usa maxDuration
+          duration: timer.active ? timer.duration : timer.maxDuration, 
           maxDuration: timer.maxDuration,
         };
       });
@@ -540,11 +593,36 @@ function stringToDate(timeString) {
       this.postTimers();
     },
 
-    addTimer() {
+addTimer() {
+      const durataNuovaParteSecondi = this.insertingDuration * 60;
+      const sommaAttualeSecondi = this.timers.reduce((sum, t) => sum + t.maxDuration, 0);
+
+      if (this.isTimerActive && this.timers[0]?.start) {
+        // Se il meeting è già in corso, calcola il timestamp di fine assoluto (Inizio Reale + 105 min)
+        const orarioMassimoFine = this.timers[0].start.getTime() + (105 * 60 * 1000);
+        
+        // Calcola la proiezione di fine aggiungendo la nuova parte alla coda futura
+        const forward = this.slicedTimers[1];
+        const inizioPrimoTimerFuturo = forward[0]?.start?.getTime() || Date.now();
+        const durataCodaFuturaEsistente = forward.reduce((sum, t) => sum + t.maxDuration, 0);
+        const proiezioneFineMeeting = inizioPrimoTimerFuturo + ((durataCodaFuturaEsistente + durataNuovaParteSecondi) * 1000);
+
+        if (proiezioneFineMeeting > orarioMassimoFine) {
+          alert('Attenzione: Non puoi aggiungere questa parte. Supereresti l\'orario massimo di chiusura calcolato dall\'inizio reale (+105 min)!');
+          return;
+        }
+      } else {
+        // Se non è ancora partito, verifichiamo solo il cumulo dei minuti nominali
+        if (sommaAttualeSecondi + durataNuovaParteSecondi > 105 * 60) {
+          alert('Attenzione: Non puoi aggiungere questa parte. Il tempo totale configurato supererebbe i 105 minuti!');
+          return;
+        }
+      }
+
       this.timers.push({
         id: Math.max.apply(Math, this.timers.map((timer) => timer.id)) + 1,
-        duration: this.insertingDuration * 60,
-        maxDuration: this.insertingDuration * 60,
+        duration: durataNuovaParteSecondi,
+        maxDuration: durataNuovaParteSecondi,
         name: this.insertingName,
         active: false,
       });
@@ -729,16 +807,30 @@ function stringToDate(timeString) {
       if (this.isTimerActive) {
         const activeTimer = this.timers.indexOf(this.timers.find((timer) => timer.active));
         const nextTimer = this.timers.length > activeTimer + 1 ? activeTimer + 1 : undefined;
-        this.timers[activeTimer].active = false;
+      
+        const current = this.timers[activeTimer];
+        current.active = false;
+        current.end = new Date();
+      
+        // Salva e blocca i secondi effettivi passati
+        const secondiEffettivi = Math.floor((current.end.getTime() - current.start.getTime()) / 1000);
+        current.duration = Math.max(1, secondiEffettivi); 
+      
         if (nextTimer !== undefined) {
-          this.timers[activeTimer].end = new Date();
           this.timers[nextTimer].active = true;
           this.timers[nextTimer].start = new Date();
+          this.timers[nextTimer].end = undefined;
+          this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
         }
+      
+        this.postTimers();
       } else {
         if (this.timers.length > 0) {
           this.timers[0].active = true;
           this.timers[0].start = new Date();
+          this.timers[0].end = undefined;
+          this.timers[0].duration = this.timers[0].maxDuration;
+          this.postTimers();
         }
       }
     },
@@ -747,12 +839,23 @@ function stringToDate(timeString) {
       if (this.isTimerActive) {
         const activeTimer = this.timers.indexOf(this.timers.find((timer) => timer.active));
         const prevTimer = activeTimer > 0 ? activeTimer - 1 : undefined;
-        this.timers[activeTimer].active = false;
+      
         if (prevTimer !== undefined) {
-          this.timers[prevTimer].active = true;
-          this.timers[prevTimer].start = new Date();
+          const current = this.timers[activeTimer];
+          current.active = false;
+          current.end = undefined;
+          // Ritornando indietro, la parte che abbandoni torna ad avere la sua durata nominale
+          current.duration = current.maxDuration; 
+        
+          const prev = this.timers[prevTimer];
+          prev.active = true;
+          prev.end = undefined;
+          prev.duration = prev.maxDuration; 
+          prev.start = new Date(); // Riparte da adesso
+        
+          this.postTimers();
         }
-      } else return;
+      }
     },
 
     get slicedTimers() {
@@ -788,15 +891,14 @@ function stringToDate(timeString) {
 
     postTimers() {
       this.refreshTimerQueue();
-      
-      // BLOCCO TOTALE IMMEDIATO: Taglia i ponti con EventSource per i prossimi 2 secondi completi
+
       this.isUpdatingLocal = true;
       if (this.lockTimeout) clearTimeout(this.lockTimeout);
-      
+
       this.lockTimeout = setTimeout(() => {
         this.isUpdatingLocal = false;
       }, 2000);
-
+    
       const pastTimers = this.slicedTimers[0].map((timer) => {
         return {
           id: timer.id,
@@ -804,7 +906,8 @@ function stringToDate(timeString) {
           start: timer.start?.toTimeString().slice(0, 8),
           end: timer.end?.toTimeString().slice(0, 8),
           active: timer.active,
-          duration: Math.floor((timer.end.getTime() - timer.start.getTime()) / 1000),
+          // Mantiene rigorosamente la durata reale calcolata al momento del cambio
+          duration: timer.duration, 
           maxDuration: timer.maxDuration,
         };
       });
@@ -814,13 +917,14 @@ function stringToDate(timeString) {
           id: timer.id,
           name: timer.name,
           start: timer.start?.toTimeString().slice(0, 8),
-          end: timer.end?.toTimeString().slice(0, 8), // <-- Passagli l'end calcolato dal refresh locale
+          end: timer.end ? timer.end.toTimeString().slice(0, 8) : undefined, 
           active: timer.active,
-          duration: timer.duration || timer.maxDuration, // <-- NON mandare undefined, passa i secondi reali!
+          // Se è attivo usa la sua duration corrente, altrimenti usa maxDuration
+          duration: timer.active ? timer.duration : timer.maxDuration, 
           maxDuration: timer.maxDuration,
         };
       });
-
+    
       fetch("/api/meeting", {
         method: "POST",
         headers: {
