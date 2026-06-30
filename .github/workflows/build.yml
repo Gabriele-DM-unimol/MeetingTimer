@@ -19,15 +19,17 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "logo.png" --clean --collect-all requests --hidden-import=requests --add-data "fe;fe" --add-data "templates.json;." app.py
+            # Usiamo favicon.ico che su Windows è nativo e sicuro al 100%
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "logo.png" --clean --collect-all requests --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "logo.png" --clean --collect-all requests --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
+            # Su Mac logo.png o favicon.ico verranno convertiti grazie a Pillow
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "logo.png" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente
@@ -37,20 +39,20 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip' # Blocca l'uso di dipendenze vecchie o corrotte nella cache di GitHub
+        cache: 'pip'
 
     - name: Installa le dipendenze in modo forzato
       run: |
         python -m pip install --upgrade pip
-        # 🚀 Installiamo le dipendenze base
         python -m pip install -r requirements.txt
-        # 🎯 Forza Pillow e PyInstaller nell'ambiente corretto usando il modulo python esplicito
-        python -m pip install --upgrade pyinstaller pillow
+        # 🚀 Forziamo l'installazione di beautifulsoup4 (bs4), pyinstaller e pillow nell'ambiente globale
+        python -m pip install --upgrade pyinstaller pillow beautifulsoup4
 
     - name: Verifica Installazione (Log Aggressivo)
       run: |
-        python -c "import requests; print('VERIFICA: Requests è installato correttamente nel sistema virtuale!')"
-        python -c "from PIL import Image; print('VERIFICA: Pillow (PIL) è installato e pronto per convertire le icone!')"
+        python -c "import requests; print('VERIFICA: Requests è installato correttamente!')"
+        python -c "import bs4; print('VERIFICA: BeautifulSoup4 (bs4) è installato correttamente!')"
+        python -c "from PIL import Image; print('VERIFICA: Pillow (PIL) è pronto per le icone!')"
 
     - name: Esegui PyInstaller
       run: ${{ matrix.pyinstaller_cmd }}
@@ -59,7 +61,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: dist/${{ matrix.artifact_name }}
-        # 🚀 FORZA GitHub a usare il tag corretto o l'ultimo disponibile
         tag_name: ${{ github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
