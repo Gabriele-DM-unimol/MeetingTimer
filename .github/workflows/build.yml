@@ -42,10 +42,10 @@ jobs:
     - name: Installa le dipendenze in modo forzato
       run: |
         python -m pip install --upgrade pip
-        # 🚀 Installiamo prima il tuo requirements.txt
-        pip install -r requirements.txt
-        # 🎯 Forza l'installazione e l'aggiornamento di Pillow e PyInstaller nell'ambiente globale della macchina
-        pip install --upgrade pyinstaller pillow
+        # 🚀 Installiamo le dipendenze base
+        python -m pip install -r requirements.txt
+        # 🎯 Forza Pillow e PyInstaller nell'ambiente corretto usando il modulo python esplicito
+        python -m pip install --upgrade pyinstaller pillow
 
     - name: Verifica Installazione (Log Aggressivo)
       run: |
