@@ -4,10 +4,12 @@
 
 The system allows an administrator to control the timeline and duration of individual speeches in real time, distributing updates to all connected clients via a smooth **Server-Sent Events (SSE)** communication.
 
-Admin panel
+---
+## Admin panel
 <img width="1918" height="870" alt="immagine" src="https://github.com/user-attachments/assets/c666ebe6-4c4a-44a3-b24c-e9cd85a91307" />
 
-Client/secondary screen
+---
+## Client/secondary screen
 <img width="1918" height="1078" alt="immagine" src="https://github.com/user-attachments/assets/0453628e-4c24-49eb-b9cf-e79ef6206476" />
 
 ---
