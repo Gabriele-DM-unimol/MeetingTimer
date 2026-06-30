@@ -19,15 +19,16 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "cronometro.ico" --add-data "fe;fe" --add-data "templates.json;." app.py
+            # 🚀 Aggiunto --hidden-import=requests
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --hidden-import=requests --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "cronometro.ico" --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "cronometro.ico" --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente
@@ -41,14 +42,7 @@ jobs:
     - name: Installa le dipendenze
       run: |
         python -m pip install --upgrade pip
-        # 🚀 AGGIUNTO 'requests' qui sotto per evitare il crash!
         pip install flask pyinstaller requests
-
-    - name: Scarica Icona Cronometro (.ico reale)
-      shell: bash
-      run: |
-        # Scarica un'icona open-source a forma di timer/cronometro pulita in formato .ico
-        curl -L -o cronometro.ico "https://raw.githubusercontent.com/thepracticaldev/dev.to/7f2f6cb00754020c02111c1e6e0d9b54b03657cb/public/favicon.ico" || echo "Icon download failed, moving on"
 
     - name: Esegui PyInstaller
       run: ${{ matrix.pyinstaller_cmd }}
