@@ -33,6 +33,6 @@ The system allows an administrator to control the timeline and duration of indiv
 *   Python 3.8 or higher
 
 ### Procedure
-1. [Download MeetingTimer.exe](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/releases/latest/download/MeetingTimer.exe)
+1. [Download MeetingTimer.exe](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/latest/download/MeetingTimer.exe)
 2. Run MeetingTimer.exe
 It is recommended to use Chromium-based browsers (Google Chrome, Edge etc.)
