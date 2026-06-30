@@ -2,7 +2,7 @@ name: Compila con PyInstaller ad ogni Release
 
 on:
   release:
-    types: [published] # Il flusso si attiva solo quando pubblichi ufficialmente una release
+    types: [published]
 
 permissions:
   contents: write
@@ -19,16 +19,15 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
-            # 🚀 Sostituito con --collect-all requests e aggiunti hidden imports incrociati
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe;fe" --add-data "templates.json;." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --clean --collect-all requests --hidden-import=requests --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --clean --collect-all requests --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --clean --collect-all requests --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente
@@ -38,11 +37,16 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip' # Blocca l'uso di dipendenze vecchie o corrotte nella cache di GitHub
 
-    - name: Installa le dipendenze
+    - name: Installa le dipendenze in modo forzato
       run: |
         python -m pip install --upgrade pip
-        pip install flask pyinstaller requests
+        pip install -r requirements.txt
+
+    - name: Verifica Installazione (Log Aggressivo)
+      run: |
+        python -c "import requests; print('VERIFICA: Requests è installato correttamente nel sistema virtuale!')"
 
     - name: Esegui PyInstaller
       run: ${{ matrix.pyinstaller_cmd }}
