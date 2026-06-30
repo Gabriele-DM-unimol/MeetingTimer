@@ -1,0 +1,15 @@
+```text
+# Cache di Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Cartelle di Build e Output (es. PyInstaller / compilazione)
+build/
+dist/
+
+# File di specifica PyInstaller
+*.spec
+
+# Configurazioni dell'ambiente di sviluppo (VS Code)
+.vscode/

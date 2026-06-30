@@ -1,39 +1,38 @@
 # MeetingTimer ⏱️
 
-**MeetingTimer** è un'applicazione basata su **Flask** (Python) progettata per la gestione sincronizzata e l'automazione dei tempi durante i meeting, le conferenze o le agende aziendali/culturali. 
+**MeetingTimer** is a **Flask-based** (Python) application designed for synchronized management and automation of timing during meetings. 
 
-Il sistema permette a un amministratore di controllare la timeline e le durate dei singoli interventi in tempo reale, distribuendo gli aggiornamenti a tutti i client connessi tramite una comunicazione fluida in **Server-Sent Events (SSE)**.
-
----
-
-## ✨ Funzionalità Principali
-
-*   **Sincronizzazione in Tempo Reale**: Aggiornamento istantaneo di tutti i client connessi (schermi della regia, podio, visualizzatori) tramite SSE (Server-Sent Events).
-*   **Algoritmo di Compensazione Proporzionale**: Se un intervento supera il tempo stabilito, il sistema ricalcola automaticamente e proporzionalmente la durata dei timer futuri (superiori a 5 minuti) per garantire il rispetto del limite massimo del meeting (es. 105 minuti nominali).
-*   **Gestione Template**: Caricamento di agende predefinite basate sul giorno della settimana (`infrasettimanale_std` / `fine_settimana_std`) tramite file JSON di configurazione.
-*   **Scraping Automatizzato**: Integrazione per l'estrazione dinamica del programma e dei titoli degli interventi all'avvio.
-*   **Architettura Portabile**: Predisposto per funzionare sia come script Python sia come eseguibile autonomo "congelato" (es. tramite PyInstaller), salvando lo stato dell'applicazione nella cartella `AppData` (Windows) o nella `Home` (Linux/macOS).
-*   **Multi-Interfaccia**: 
-    *   `http://127.0.0.1:1914/admin` - Pannello di controllo per la regia.
-    *   `http://127.0.0.1:1914/` - Visualizzazione pulita del timer per i relatori/pubblico.
+The system allows an administrator to control the timeline and duration of individual speeches in real time, distributing updates to all connected clients via a smooth **Server-Sent Events (SSE)** communication.
 
 ---
 
-## 🛠️ Tecnologia e Stack
+## ✨ Main Features
 
-*   **Backend**: Python, Flask, Regia multithreaded (Queue/Timer).
+*   **Real-Time Synchronization**: Instant updates across all connected clients (control room screens, podium, displays) via SSE (Server-Sent Events).
+*   **Proportional Compensation Algorithm**: If a speech exceeds the established time, the system automatically and proportionally recalculates the duration of future timers (longer than 5 minutes) to ensure the meeting's maximum limit (e.g., 105 nominal minutes) is respected.
+*   **Template Management**: Pre-defined agenda loading based on the day of the week (`infrasettimanale_std` / `fine_settimana_std`) via JSON configuration files.
+*   **Automated Scraping**: Integration for dynamic extraction of the program and speech titles at startup.
+*   **Portable Architecture**: Prepared to run either as a Python script or as a "frozen" standalone executable (e.g., via PyInstaller), saving the application state in the `AppData` folder (Windows) or `Home` (Linux/macOS).
+*   **Multi-Interface**: 
+    *   `http://127.0.0.1:1914/admin` - Admin control panel.
+    *   `http://127.0.0.1:1914/` - Client.
+
+---
+
+## 🛠️ Technology and Stack
+
+*   **Backend**: Python, Flask, Multithreaded core (Queue/Timer).
 *   **Frontend**: HTML5, CSS3, JavaScript (Vanilla ES6).
-*   **Protocollo di Rete**: Server-Sent Events (SSE) per il flusso dati unidirezionale a bassa latenza.
+*   **Network Protocol**: Server-Sent Events (SSE) for low-latency, unidirectional data streaming.
 
 ---
 
-## 🚀 Installazione e Avvio Rapido
+## 🚀 Quick Start and Installation
 
-### Requisiti
-*   Python 3.8 o superiore
+### Requirements
+*   Python 3.8 or higher
 
-### Procedura
-1. Clonare il repository:
-   ```bash
-   git clone [https://github.com/tuo-username/MeetingTimer.git](https://github.com/tuo-username/MeetingTimer.git)
-   cd MeetingTimer
+### Procedure
+1. [Download MeetingTimer.exe](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/releases/latest/download/MeetingTimer.exe)
+2. Run MeetingTimer.exe
+It is recommended to use Chromium-based browsers (Google Chrome, Edge etc.)
