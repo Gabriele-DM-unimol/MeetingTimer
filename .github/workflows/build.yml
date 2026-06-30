@@ -20,16 +20,16 @@ jobs:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
             # Usiamo favicon.ico che su Windows è nativo e sicuro al 100%
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe;fe" --add-data "templates.json;." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "logo.png" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "logo.png" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
             # Su Mac logo.png o favicon.ico verranno convertiti grazie a Pillow
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "logo.png" --clean --collect-all requests --collect-all bs4 --hidden-import=requests --hidden-import=bs4 --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente
