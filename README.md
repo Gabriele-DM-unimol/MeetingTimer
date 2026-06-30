@@ -32,13 +32,10 @@ The system allows an administrator to control the timeline and duration of indiv
 ### Procedure
 1. Download executable file
 
-### 🐧 LINUX 
 [![Download LINUX](https://img.shields.io/badge/Download-Linux_Version-orange?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-linux)
 
-### 🪟 WINDOWS 
-[![Download WINDOWS](https://img.shields.io/badge/Download-Windows_.exe-blue?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer.exe)
+[![Download WINDOWS](https://img.shields.io/badge/Download-Windows_.exe-blue?style=for-the-badge&logo=microsoftwindows&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer.exe)
 
-### 🍏 MACOS 
 [![Download MACOS](https://img.shields.io/badge/Download-macOS_Version-black?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-mac)
 
 2. Run MeetingTimer
