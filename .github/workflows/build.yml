@@ -4,6 +4,9 @@ on:
   release:
     types: [published] # Il flusso si attiva solo quando pubblichi ufficialmente una release
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Compila su ${{ matrix.os }}
