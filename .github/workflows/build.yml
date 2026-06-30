@@ -19,16 +19,16 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
-            # 🚀 Aggiunto --hidden-import=requests
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --hidden-import=requests --add-data "fe;fe" --add-data "templates.json;." app.py
+            # 🚀 Sostituito con --collect-all requests e aggiunti hidden imports incrociati
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --hidden-import=requests --add-data "fe:fe" --add-data "templates.json:." app.py
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --collect-all requests --hidden-import=requests --hidden-import=automatic_timing --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente
