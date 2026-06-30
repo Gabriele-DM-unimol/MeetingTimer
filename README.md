@@ -29,11 +29,15 @@ The system allows an administrator to control the timeline and duration of indiv
 
 ## 🚀 Quick Start and Installation
 
-### Requirements
-*   Python 3.8 or higher
-
 ### Procedure
-1. [![Download](https://img.shields.io/badge/Download-MeetingTimer.exe-green?style=for-the-badge&logo=windows)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.0/MeetingTimer.exe)
-2. Run MeetingTimer.exe
+1. Download executable file
+
+[![Download LINUX](https://img.shields.io/badge/Download-MeetingTimer.exe-green?style=for-the-badge&logo=windows)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-linux)
+
+[![Download WINDOWS](https://img.shields.io/badge/Download-MeetingTimer.exe-green?style=for-the-badge&logo=windows)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer.exe)
+
+[![Download MACOS](https://img.shields.io/badge/Download-MeetingTimer.exe-green?style=for-the-badge&logo=windows)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-mac)
+
+2. Run MeetingTimer
 
 It is recommended to use Chromium-based browsers (Google Chrome, Edge etc.)
