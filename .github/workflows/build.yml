@@ -19,15 +19,18 @@ jobs:
         include:
           - os: windows-latest
             artifact_name: MeetingTimer.exe
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --add-data "fe;fe" --add-data "templates.json;." app.py
+            # 🪟 Aggiunto --icon "favicon.ico"
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer" --icon "favicon.ico" --add-data "fe;fe" --add-data "templates.json;." app.py
           
           - os: ubuntu-latest
             artifact_name: MeetingTimer-linux
-            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --add-data "fe:fe" --add-data "templates.json:." app.py
+            # 🐧 Aggiunto --icon "favicon.ico"
+            pyinstaller_cmd: pyinstaller --onefile --name "MeetingTimer-linux" --icon "favicon.ico" --add-data "fe:fe" --add-data "templates.json:." app.py
           
           - os: macos-latest
             artifact_name: MeetingTimer-mac
-            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --add-data "fe:fe" --add-data "templates.json:." app.py
+            # 🍏 Aggiunto --icon "favicon.ico"
+            pyinstaller_cmd: pyinstaller --onefile --noconsole --name "MeetingTimer-mac" --icon "favicon.ico" --add-data "fe:fe" --add-data "templates.json:." app.py
 
     steps:
     - name: Controlla il codice sorgente

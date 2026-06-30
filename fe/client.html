@@ -83,23 +83,23 @@
     </div>
 
     <!-- INTESTAZIONE TITOLO (SOLO SE NON È FINE ADUNANZA) -->
-    <div x-show="!endMeetingMode" class="flex items-center justify-center text-center h-20 w-full px-4 font-timer shrink-0">
+    <div x-show="!endMeetingMode" class="flex items-center justify-center text-center min-h-20 max-h-[20dvh] w-full px-8 font-timer shrink-0 overflow-hidden">
       <span
-        class="text-5xl md:text-6xl lg:text-8xl font-bold tracking-wide uppercase transition-all"
+        class="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-wide uppercase transition-all leading-[1.1] max-w-6xl line-clamp-2"
         :class="[delay ? 'text-red-500 animate-pulse' : 'text-green-500']"
         x-text="delay ? 'TEMPO SCADUTO' : activeTimer?.name"
       ></span>
     </div>
 
     <!-- CASO STANDARD: SCADENZIARIO E BARRA -->
-    <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-8">
-        <div class="flex font-timer font-bold select-none items-baseline">
-        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[16vw] leading-none transition-colors" x-text="mins"></div>
-        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none px-4 transition-colors">:</div>
-        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[14vw] leading-none transition-colors" x-text="secs"></div>
-        </div>
+    <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-4 py-2">
+      <div class="flex font-timer font-bold select-none items-baseline leading-none">
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[11vw] md:text-[140px] lg:text-[180px] xl:text-[220px] leading-none transition-colors" x-text="mins"></div>
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[9vw] md:text-[120px] lg:text-[150px] xl:text-[180px] leading-none px-2 transition-colors">:</div>
+        <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[9vw] md:text-[120px] lg:text-[150px] xl:text-[180px] leading-none transition-colors" x-text="secs"></div>
+      </div>
 
-      <div class="w-9/12 rounded-full h-3 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden">
+      <div class="w-8/12 rounded-full h-3 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden mt-2">
         <div
           x-show="showBar"
           :class="[barValue === 0 ? 'bg-red-500' : 'bg-green-500']"

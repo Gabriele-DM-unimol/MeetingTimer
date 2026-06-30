@@ -38,11 +38,11 @@ Client/secondary screen
 ### Procedure
 1. Download executable file
 
-[![Download LINUX](https://img.shields.io/badge/Download-LINUX-orange?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-linux)
+[![Download LINUX](https://img.shields.io/badge/Download-LINUX-orange?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/latest/download/MeetingTimer-linux)
 
-[![Download WINDOWS](https://img.shields.io/badge/Download-WINDOWS-blue?style=for-the-badge&logo=gitforwindows&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer.exe)
+[![Download WINDOWS](https://img.shields.io/badge/Download-WINDOWS-blue?style=for-the-badge&logo=gitforwindows&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/latest/download/MeetingTimer.exe)
 
-[![Download MACOS](https://img.shields.io/badge/Download-MACOS-green?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/download/1.0.1/MeetingTimer-mac)
+[![Download MACOS](https://img.shields.io/badge/Download-MACOS-green?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Gabriele-DM-unimol/MeetingTimer/releases/latest/download/MeetingTimer-mac)
 
 2. Run MeetingTimer
 
