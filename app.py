@@ -7,7 +7,7 @@ import os
 import time
 import socket
 import webbrowser
-from threading import Timer
+from threading import Timer,Lock
 import sys
 
 if getattr(sys, 'frozen', False):
@@ -15,7 +15,11 @@ if getattr(sys, 'frozen', False):
 else:
     base_path = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, static_folder=os.path.join(base_path, "fe"))
+app = Flask(
+    __name__, 
+    static_folder=os.path.join(base_path, "fe"),
+    static_url_path=""
+)
 
 if os.name == 'nt':
     appdata_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'TimerSincronizzato')
@@ -26,6 +30,7 @@ os.makedirs(appdata_dir, exist_ok=True)
 MEETING_FILE = os.path.join(appdata_dir, "queue.json")
 
 clients = []
+clients_lock = Lock()
 
 def save_meeting(data):
     with open(MEETING_FILE, "w") as f:
@@ -114,8 +119,9 @@ def post_meeting():
     return jsonify({"status": "ok"})
 
 def broadcast_message(message):
-    for q in clients:
-        q.put(message)
+    with clients_lock:
+        for q in clients:
+            q.put(message)
 
 def refresh_meeting(data):
     def get_seconds(time_str):
@@ -219,11 +225,14 @@ def stream():
                 except Empty:
                     yield ":\n\n" 
         finally:
-            if q in clients:
-                clients.remove(q)
+            with clients_lock:  # <--- Protegge la rimozione dal thread
+                if q in clients:
+                    clients.remove(q)
     
     q = Queue()
-    clients.append(q)
+    with clients_lock:  # <--- Protegge l'inserimento nel thread
+        clients.append(q)
+        
     return Response(event_stream(q), 
                     headers={"Cache-Control": "no-cache",
                              "Connection": "keep-alive",
