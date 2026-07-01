@@ -30,6 +30,10 @@
           s: String(now.getSeconds()).padStart(2, '0')
         }
       },
+      getEndMeetingGreeting() {
+        const hour = Number(this.clock.hm.slice(0, 2));
+        return hour >= 14 ? 'BUONA SERATA' : 'BUONA GIORNATA';
+      },
       clock: { hm: '', s: '' },
       isFullscreen: false,
       mouseFermo: false,
@@ -113,7 +117,7 @@
     <div x-show="endMeetingMode" class="flex flex-col items-center justify-center flex-grow gap-4 animate-fade-in">
       <!-- Scritta Buona Serata ridimensionata a una grandezza ottimale -->
       <div class="font-timer font-bold tracking-wider uppercase text-5xl md:text-7xl lg:text-8xl leading-none text-orange-400 text-center">
-        BUONA SERATA
+        <span x-text="getEndMeetingGreeting()"></span>
       </div>
       
       <!-- Linea di separazione orizzontale per dare l'effetto orologio -->

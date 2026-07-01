@@ -222,16 +222,9 @@
     },
     {
         "id": 3,
-        "name":"infrasettimanale",
+        "name":"vuoto",
         "conferenceStart": "19:00:00",
         "conferenceEnd": "20:45:00",
-        "timers": []
-    },
-    {
-        "id": 4,
-        "name":"fine_settimana",
-        "conferenceStart": "18:00:00",
-        "conferenceEnd": "19:45:00",
         "timers": []
     }
 ]
