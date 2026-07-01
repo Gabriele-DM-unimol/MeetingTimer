@@ -381,9 +381,10 @@ document.addEventListener("alpine:init", () => {
         let currentTime = this.conferenceStart;
         this.timers = this.timers.map((timer) => {
           const start = new Date(currentTime);
-          const end = new Date(start.getTime() + timer.duration * 1000);
+          const nominalDuration = timer.maxDuration ?? timer.duration;
+          const end = new Date(start.getTime() + nominalDuration * 1000);
           currentTime = new Date(end);
-          return { ...timer, start, end };
+          return { ...timer, duration: nominalDuration, start, end };
         });
       } else {
         const [past, forward] = this.slicedTimers;
@@ -884,9 +885,10 @@ addTimer() {
         let currentTime = this.conferenceStart;
         this.timers = this.timers.map((timer) => {
           const start = new Date(currentTime);
-          const end = new Date(start.getTime() + timer.duration * 1000);
+          const nominalDuration = timer.maxDuration ?? timer.duration;
+          const end = new Date(start.getTime() + nominalDuration * 1000);
           currentTime = new Date(end);
-          return { ...timer, start, end };
+          return { ...timer, duration: nominalDuration, start, end };
         });
       } else {
         const [past, forward] = this.slicedTimers;
