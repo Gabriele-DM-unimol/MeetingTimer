@@ -115,6 +115,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     get calculatedEnd() {
+      if (!this.isTimerActive) return "";
+
       const forward = this.slicedTimers[1];
       if (forward.length > 0) {
         const start = forward[0].start;
@@ -129,7 +131,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     get effectiveStart() {
-      return this.timers[0]?.start?.toTimeString().slice(0, 5);
+      return this.isTimerActive ? this.timers[0]?.start?.toTimeString().slice(0, 5) : "";
     },
 
     // Sposta in su nella coda dei timer modificabili (forward)
@@ -631,6 +633,8 @@ addTimer() {
     },
 
     get calculatedEnd() {
+      if (!this.isTimerActive) return "";
+
       const forward = this.slicedTimers[1];
       if (forward.length > 0) {
         const start = forward[0].start;
@@ -645,7 +649,7 @@ addTimer() {
     },
 
     get effectiveStart() {
-      return this.timers[0]?.start?.toTimeString().slice(0, 5);
+      return this.isTimerActive ? this.timers[0]?.start?.toTimeString().slice(0, 5) : "";
     },
 
     // Gestore dell'animazione dello scambio prima del riordinamento dell'array
