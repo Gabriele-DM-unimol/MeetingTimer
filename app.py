@@ -29,6 +29,7 @@ else:
 
 os.makedirs(appdata_dir, exist_ok=True)
 MEETING_FILE = os.path.join(appdata_dir, "queue.json")
+TEMPLATE_STATE_FILE = os.path.join(appdata_dir, "templates_state.json")
 
 clients = []
 clients_lock = Lock()
@@ -38,12 +39,28 @@ def save_meeting(data):
         json.dump(data, f)
 
 
+def load_template_state():
+    if os.path.exists(TEMPLATE_STATE_FILE):
+        try:
+            with open(TEMPLATE_STATE_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Server] Errore lettura template state, ignoro override: {e}")
+    return {}
+
+
+def save_template_state(template_state):
+    with open(TEMPLATE_STATE_FILE, "w") as f:
+        json.dump(template_state, f)
+
+
 def build_templates_catalog():
     path_templates = os.path.join(base_path, "templates.json")
     with open(path_templates, "r") as f:
         templates = json.load(f)
 
     dynamic_templates = deepcopy(templates)
+    template_state = load_template_state()
     infrasettimanale = next((template for template in dynamic_templates if template["name"] == "infrasettimanale_std"), None)
 
     if infrasettimanale:
@@ -54,6 +71,13 @@ def build_templates_catalog():
                 infrasettimanale["timers"] = timers_dinamici
         except Exception as e:
             print(f"Fallback attivo. Errore automazione scraper: {e}")
+
+    for template in dynamic_templates:
+        overrides = template_state.get(str(template.get("id")), {})
+        if "conferenceStart" in overrides:
+            template["conferenceStart"] = overrides["conferenceStart"]
+        if "conferenceEnd" in overrides:
+            template["conferenceEnd"] = overrides["conferenceEnd"]
 
     return dynamic_templates
 
@@ -123,6 +147,13 @@ def post_meeting():
     data = request.get_json()
     refreshed = refresh_meeting(data)
     save_meeting(refreshed)
+    if data.get("id") is not None:
+        template_state = load_template_state()
+        template_state[str(data["id"])] = {
+            "conferenceStart": data.get("conferenceStart", refreshed.get("conferenceStart")),
+            "conferenceEnd": data.get("conferenceEnd", refreshed.get("conferenceEnd")),
+        }
+        save_template_state(template_state)
     broadcast_message(json.dumps(refreshed))  
     return jsonify({"status": "ok"})
 
@@ -141,7 +172,7 @@ def refresh_meeting(data):
         h, m, s = int(seconds // 3600), int((seconds % 3600) // 60), int(seconds % 60)
         return f"{h:02}:{m:02}:{s:02}"
         
-    conference_start = get_seconds(data['timers'][0]['start'])
+    conference_start = get_seconds(data.get('conferenceStart') or data['timers'][0]['start'])
     
     # Il limite massimo invalicabile: Inizio Effettivo + 105 minuti (6300 secondi)
     MAX_TOTAL_DURATION = 105 * 60 
@@ -271,8 +302,8 @@ def open_browser_tabs():
     webbrowser.open(url_admin_local)
 
 if __name__ == "__main__":
-    # Carica lo stato salvato se presente, altrimenti genera il default iniziale.
-    current_meeting = load_meeting()
+    # All'avvio riparte dal template del giorno, ma con gli override salvati per quel template.
+    current_meeting = get_clean_default_meeting()
     
     Timer(1.5, open_browser_tabs).start()
     app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)

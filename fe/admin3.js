@@ -32,7 +32,6 @@ document.addEventListener("alpine:init", () => {
 
     templates: [],
     selectedTemplateId: undefined,
-    initialTemplateId: undefined,
 
     endDate: new Date(),
     eventSource: new EventSource("/stream"),
@@ -80,7 +79,6 @@ document.addEventListener("alpine:init", () => {
                 this.timers = data?.timers.map((timer) => this.timerMapper(timer));
                 
                 if (data.id) {
-                  this.initialTemplateId = data.id; 
                   this.selectedTemplateId = data.id;
                 }
                 
@@ -163,28 +161,24 @@ document.addEventListener("alpine:init", () => {
     },
 
     applyTemplate() {
-      if (this.initialTemplateId && Number(this.selectedTemplateId) === Number(this.initialTemplateId)) {
-        fetch("api/meeting")
-          .then((res) => res.json())
-          .then((data) => {
-            if (data) {
-              this.conferenceStart = stringToDate(data?.conferenceStart);
-              this.conferenceEnd = stringToDate(data?.conferenceEnd);
-              this.endMeetingMode = !!data?.endMeetingMode;
-              this.timers = data?.timers.map((timer) => this.timerMapper(timer));
-              this.startCountdown();
-            }
-          })
-          .catch((err) => console.error("Errore nel ripristino:", err));
-        return;
-      }
-
       const templateToApply = this.templates.find((t) => t.id === Number(this.selectedTemplateId));
       if (templateToApply) {
         this.conferenceStart = stringToDate(templateToApply.conferenceStart);
         this.conferenceEnd = stringToDate(templateToApply.conferenceEnd);
         this.timers = templateToApply.timers.map((timer) => this.timerMapper(timer));
       }
+    },
+
+    saveTemplateStart() {
+      if (!this.selectedTemplateId) return;
+
+      this.postTimers()
+        .then(() => fetch("/api/templates"))
+        .then((res) => res.json())
+        .then((data) => {
+          this.templates = data;
+        })
+        .catch((err) => console.error("Errore nel ricaricare i template:", err));
     },
 
     timerMapper(timer) {
@@ -284,8 +278,6 @@ document.addEventListener("alpine:init", () => {
           this.timers[nextTimer].start = new Date();
           this.timers[nextTimer].end = undefined;
           this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
-        } else {
-          this.initialTemplateId = undefined;
         }
 
         this.postTimers();
@@ -325,7 +317,6 @@ document.addEventListener("alpine:init", () => {
           this.timers[activeTimer].active = false;
           this.timers[activeTimer].end = undefined;
           this.timers[activeTimer].duration = this.timers[activeTimer].maxDuration;
-          this.initialTemplateId = undefined;
 
           this.postTimers();
         }
@@ -438,7 +429,7 @@ document.addEventListener("alpine:init", () => {
         };
       });
 
-      fetch("/api/meeting", {
+      return fetch("/api/meeting", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -519,7 +510,6 @@ function stringToDate(timeString) {
 
     templates: [],
     selectedTemplateId: undefined,
-    initialTemplateId: undefined,
 
     endDate: new Date(),
     eventSource: new EventSource("/stream"),
@@ -567,7 +557,6 @@ function stringToDate(timeString) {
                 this.timers = data?.timers.map((timer) => this.timerMapper(timer));
                 
                 if (data.id) {
-                  this.initialTemplateId = data.id; 
                   this.selectedTemplateId = data.id;
                 }
                 
@@ -710,28 +699,24 @@ addTimer() {
     },
 
     applyTemplate() {
-      if (this.initialTemplateId && Number(this.selectedTemplateId) === Number(this.initialTemplateId)) {
-        fetch("api/meeting")
-          .then((res) => res.json())
-          .then((data) => {
-            if (data) {
-              this.conferenceStart = stringToDate(data?.conferenceStart);
-              this.conferenceEnd = stringToDate(data?.conferenceEnd);
-              this.endMeetingMode = !!data?.endMeetingMode;
-              this.timers = data?.timers.map((timer) => this.timerMapper(timer));
-              this.startCountdown();
-            }
-          })
-          .catch((err) => console.error("Errore nel ripristino:", err));
-        return;
-      }
-
       const templateToApply = this.templates.find((t) => t.id === Number(this.selectedTemplateId));
       if (templateToApply) {
         this.conferenceStart = stringToDate(templateToApply.conferenceStart);
         this.conferenceEnd = stringToDate(templateToApply.conferenceEnd);
         this.timers = templateToApply.timers.map((timer) => this.timerMapper(timer));
       }
+    },
+
+    saveTemplateStart() {
+      if (!this.selectedTemplateId) return;
+
+      this.postTimers()
+        .then(() => fetch("/api/templates"))
+        .then((res) => res.json())
+        .then((data) => {
+          this.templates = data;
+        })
+        .catch((err) => console.error("Errore nel ricaricare i template:", err));
     },
 
     timerMapper(timer) {
@@ -831,8 +816,6 @@ addTimer() {
           this.timers[nextTimer].start = new Date();
           this.timers[nextTimer].end = undefined;
           this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
-        } else {
-          this.initialTemplateId = undefined;
         }
       
         this.postTimers();
@@ -870,7 +853,6 @@ addTimer() {
           current.active = false;
           current.end = undefined;
           current.duration = current.maxDuration;
-          this.initialTemplateId = undefined;
 
           this.postTimers();
         }
@@ -945,7 +927,7 @@ addTimer() {
         };
       });
     
-      fetch("/api/meeting", {
+      return fetch("/api/meeting", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
