@@ -319,6 +319,12 @@ document.addEventListener("alpine:init", () => {
           this.timers[prevTimer].duration = this.timers[prevTimer].maxDuration;
           
           this.postTimers();
+        } else {
+          this.timers[activeTimer].active = false;
+          this.timers[activeTimer].end = undefined;
+          this.timers[activeTimer].duration = this.timers[activeTimer].maxDuration;
+
+          this.postTimers();
         }
       }
     },
@@ -851,8 +857,14 @@ addTimer() {
           prev.active = true;
           prev.end = undefined;
           prev.duration = prev.maxDuration; 
-          prev.start = new Date(); // Riparte da adesso
         
+          this.postTimers();
+        } else {
+          const current = this.timers[activeTimer];
+          current.active = false;
+          current.end = undefined;
+          current.duration = current.maxDuration;
+
           this.postTimers();
         }
       }
