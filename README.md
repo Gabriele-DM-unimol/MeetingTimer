@@ -23,7 +23,7 @@ The system allows an administrator to control the timeline and duration of indiv
 *   **Portable Architecture**: Prepared to run either as a Python script or as a "frozen" standalone executable (e.g., via PyInstaller), saving the application state in the `AppData` folder (Windows) or `Home` (Linux/macOS).
 *   **Multi-Interface**: 
     *   `http://127.0.0.1:1914/admin` - Admin control panel.
-    *   `http://127.0.0.1:1914/` - Client.
+    *   `http://127.0.0.1:1914/` - Client/secondary screen.
 
 ---
 
