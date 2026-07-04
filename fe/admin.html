@@ -98,24 +98,28 @@
               </template>
             </ul>
 
-            <!-- Coda Timer Attivi/Futuri (Modificabili tramite Frecce) -->
-            <ul class="w-full space-y-2">
+            <!-- Coda Timer Attivi/Futuri (Modificabili tramite Frecce con Animazione Fluida) -->
+            <ul class="w-full space-y-2 relative">
               <template x-for="(timer, index) in slicedTimers[1]" :key="timer.id">
-                <li :class="[timer.active ? 'border-green-500 bg-green-950/10' : 'border-neutral-800 bg-neutral-900']" class="flex items-center gap-2 p-2 border rounded min-h-[54px]">
+                <li :class="[
+                      timer.active ? 'border-green-500 bg-green-950/10' : 'border-neutral-800 bg-neutral-900',
+                      movingId === timer.id ? 'z-20 scale-[1.02] shadow-xl border-neutral-600 bg-neutral-800/80' : 'z-10'
+                    ]" 
+                    class="flex items-center gap-2 p-2 border rounded min-h-[54px] transition-all duration-300 cubic-bezier(0.25, 1, 0.5, 1)">
                   
-                  <!-- SUT DI FRECCE (SU / GIÙ) -->
+                  <!-- SET DI FRECCE (SU / GIÙ) -->
                   <div class="flex flex-col justify-center items-center gap-0.5 shrink-0 min-w-[32px]">
                     <!-- Freccia SU -->
                     <button type="button" 
-                            :disabled="timer.active || index === 0" 
-                            @click="moveUp(index)"
+                            :disabled="timer.active || index === 0 || (index === 1 && isTimerActive)" 
+                            @click="animateMove(index, 'up')"
                             class="p-1 text-neutral-400 hover:text-white disabled:opacity-15 active:scale-95 transition-all">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5"><path fill-rule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.58a.75.75 0 1 1-1.08-1.04l5.25-5.25a.75.75 0 0 1 1.08 0l5.25 5.25a.75.75 0 1 1-1.08 1.04L10.75 5.612V16.25A.75.75 0 0 1 10 17Z" clip-rule="evenodd" /></svg>
                     </button>
                     <!-- Freccia GIÙ -->
                     <button type="button" 
-                            :disabled="timer.active || index === slicedTimers[1].length - 1" 
-                            @click="moveDown(index)"
+                            :disabled="timer.active || (index === 0 && isTimerActive) || index === slicedTimers[1].length - 1" 
+                            @click="animateMove(index, 'down')"
                             class="p-1 text-neutral-400 hover:text-white disabled:opacity-15 active:scale-95 transition-all">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5"><path fill-rule="evenodd" d="M10 3a.75.75 0 0 1 .75.75v10.638l4.022-3.968a.75.75 0 1 1 1.05 1.07l-5.304 5.23a.75.75 0 0 1-1.036 0L4.178 11.49a.75.75 0 1 1 1.05-1.07l4.022 3.968V3.75A.75.75 0 0 1 10 3Z" clip-rule="evenodd" /></svg>
                     </button>

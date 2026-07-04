@@ -149,9 +149,10 @@ document.addEventListener("alpine:init", () => {
 
     // Sposta in su nella coda dei timer modificabili (forward)
     moveUp(index) {
-      if (index <= 0) return; // Già in cima
+      if (index <= 0) return;
+      if (index === 1 && this.isTimerActive) return; 
+      
       let forward = [...this.slicedTimers[1]];
-      // Scambio di posizione
       let temp = forward[index];
       forward[index] = forward[index - 1];
       forward[index - 1] = temp;
@@ -163,8 +164,9 @@ document.addEventListener("alpine:init", () => {
     // Sposta in giù nella coda dei timer modificabili (forward)
     moveDown(index) {
       let forward = [...this.slicedTimers[1]];
-      if (index >= forward.length - 1) return; // Già in fondo
-      // Scambio di posizione
+      if (index >= forward.length - 1) return;
+      if (index === 0 && this.isTimerActive) return; 
+      
       let temp = forward[index];
       forward[index] = forward[index + 1];
       forward[index + 1] = temp;
@@ -424,6 +426,7 @@ function stringToDate(timeString) {
     min: 1,
     max: 45,
     modalIsOpen: false,
+    movingId: null,
 
     conferenceStart: undefined,
 
@@ -568,11 +571,34 @@ function stringToDate(timeString) {
       return this.timers[0]?.start?.toTimeString().slice(0, 5);
     },
 
-    // Sposta in su nella coda dei timer modificabili (forward)
+    // Gestore dell'animazione dello scambio prima del riordinamento dell'array
+    animateMove(index, direction) {
+      const forward = this.slicedTimers[1];
+      const currentTimer = forward[index];
+      if (!currentTimer) return;
+
+      // Salva l'ID del timer che si sta muovendo per applicargli la classe di "sollevamento"
+      this.movingId = currentTimer.id;
+
+      // Esegui lo spostamento logico effettivo
+      if (direction === 'up') {
+        this.moveUp(index);
+      } else {
+        this.moveDown(index);
+      }
+
+      // Rimuovi lo stato di movimento dopo che la transizione CSS è finita (300ms)
+      setTimeout(() => {
+        this.movingId = null;
+      }, 300);
+    },
+
+    // Sposta in su nella coda dei timer modificabili (forward) con i vecchi fix inclusi
     moveUp(index) {
-      if (index <= 0) return; // Già in cima
+      if (index <= 0) return;
+      if (index === 1 && this.isTimerActive) return; 
+      
       let forward = [...this.slicedTimers[1]];
-      // Scambio di posizione
       let temp = forward[index];
       forward[index] = forward[index - 1];
       forward[index - 1] = temp;
@@ -584,8 +610,9 @@ function stringToDate(timeString) {
     // Sposta in giù nella coda dei timer modificabili (forward)
     moveDown(index) {
       let forward = [...this.slicedTimers[1]];
-      if (index >= forward.length - 1) return; // Già in fondo
-      // Scambio di posizione
+      if (index >= forward.length - 1) return;
+      if (index === 0 && this.isTimerActive) return; 
+      
       let temp = forward[index];
       forward[index] = forward[index + 1];
       forward[index + 1] = temp;
