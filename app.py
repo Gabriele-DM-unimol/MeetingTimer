@@ -231,9 +231,8 @@ def open_browser_tabs():
     webbrowser.open(url_admin_local)
 
 if __name__ == "__main__":
-    # Inizializzazione pulita forzata all'avvio dello script
-    current_meeting = load_meeting()
-    save_meeting(current_meeting)
+    # FORZATURA: Al riavvio dell'eseguibile/script, resetta completamente lo stato al default di oggi
+    current_meeting = get_clean_default_meeting()
     
     Timer(1.5, open_browser_tabs).start()
     app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)
