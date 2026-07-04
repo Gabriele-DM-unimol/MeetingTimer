@@ -32,17 +32,17 @@ def save_meeting(data):
         json.dump(data, f)
 
 def load_meeting():
-    try:
-        if os.path.exists(MEETING_FILE):
-            with open(MEETING_FILE, "r") as f:
-                return json.load(f)
-        else:
-            default_data = get_default_meeting()
-            save_meeting(default_data)
-            return default_data
-    except Exception as e:
-        print(f"Impossibile leggere {MEETING_FILE} ({e}), genero il default...")
-        return get_default_meeting()
+    # ESAGERAZIONE 1: A ogni riavvio dell'app ignoriamo completamente la vecchia sessione 
+    # e forziamo sempre la rigenerazione pulita del default per il giorno corrente
+    print("[Server] Riavvio rilevato: ignoro la vecchia queue e rigenero un default pulito...")
+    return get_clean_default_meeting()
+
+def get_clean_default_meeting():
+    """Genera il default pulito, calcola la timeline esatta e lo salva su disco."""
+    raw_default = get_default_meeting()
+    refreshed_default = refresh_meeting(raw_default)
+    save_meeting(refreshed_default)
+    return refreshed_default
     
 def get_default_meeting():
     path_templates = os.path.join(base_path, "templates.json")
@@ -56,7 +56,6 @@ def get_default_meeting():
     else:
         data = next(x for x in templates if x["name"] == "fine_settimana_std")
     
-    # Inizializza il flag fine adunanza a falso se non è presente
     if "endMeetingMode" not in data:
         data["endMeetingMode"] = False
 
@@ -66,7 +65,6 @@ def get_default_meeting():
             if timers_dinamici:
                 timers_dinamici[0]['start'] = data['conferenceStart']
                 data["timers"] = timers_dinamici
-                data = refresh_meeting(data)
         except Exception as e:
             print(f"Fallback attivo. Errore automazione scraper: {e}")
             
@@ -88,14 +86,19 @@ def get_templates():
 
 @app.route("/api/meeting/start", methods=["GET"])
 def get_start():
-    default_meeting = get_default_meeting()
-    save_meeting(default_meeting)
+    # ESAGERAZIONE 2: A ogni richiesta di start/cambio template ricalcola tutto da zero
+    print("[Server] Richiesta cambio template / reset: eseguo il refresh totale...")
+    default_meeting = get_clean_default_meeting()
     broadcast_message(json.dumps(default_meeting))
     return jsonify(default_meeting)
 
 @app.route("/api/meeting", methods=["GET"])
 def get_meeting():
-    return jsonify(load_meeting())
+    res = jsonify(load_meeting())
+    res.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    res.headers["Pragma"] = "no-cache"
+    res.headers["Expires"] = "0"
+    return res
 
 @app.route("/api/meeting", methods=["POST"])
 def post_meeting():
@@ -125,12 +128,22 @@ def refresh_meeting(data):
         data["endMeetingMode"] = False
 
     for timer in data['timers']:
+        if 'maxDuration' not in timer or 'duration' not in timer:
+            try:
+                durata_stimata = get_seconds(timer['end']) - get_seconds(timer['start'])
+                if 'maxDuration' not in timer:
+                    timer['maxDuration'] = durata_stimata
+                if 'duration' not in timer:
+                    timer['duration'] = durata_stimata
+            except Exception:
+                timer['maxDuration'] = 60
+                timer['duration'] = 60
+        
         if 'duration' not in timer:
             timer['duration'] = timer['maxDuration']
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
-    # Se nessun timer è attivo, ricalcola i tempi sequenzialmente dall'inizio della conferenza
     if active_index is None:
         current_time = conference_start
         for timer in data['timers']:
@@ -138,9 +151,6 @@ def refresh_meeting(data):
             current_time += timer['duration']
             timer['end'] = format_time(current_time)
         return data
-    
-    # --- RIMOZIONE BUG MUTAZIONE ID ---
-    # Gli ID devono rimanere stabili. Ricalcoliamo solo la ripartizione del tempo.
     
     total_duration = sum(t['duration'] for t in data['timers']) 
     actual_end = conference_start + total_duration
@@ -162,7 +172,6 @@ def refresh_meeting(data):
         new_duration = min(timer['maxDuration'], max(300, new_duration))
         timer['duration'] = new_duration
     
-    # Ricalcola start ed end per i timer rimanenti mantenendo la fluidità
     current_time = get_seconds(data['timers'][active_index]['start'])
     for timer in data['timers'][active_index:]:
         timer['start'] = format_time(current_time)
@@ -170,6 +179,7 @@ def refresh_meeting(data):
         timer['end'] = format_time(current_time)
 
     return data
+
 @app.route("/stream")
 def stream():
     def event_stream(q):
@@ -206,7 +216,6 @@ def get_local_ip():
         return "127.0.0.1"
 
 def open_browser_tabs():
-    """Apre SOLO l'interfaccia dell'admin all'avvio dell'applicazione"""
     port = 1914
     ip_pc = get_local_ip()
     url_admin_local = f"http://127.0.0.1:{port}/admin"
@@ -217,9 +226,9 @@ def open_browser_tabs():
     webbrowser.open(url_admin_local)
 
 if __name__ == "__main__":
+    # Inizializzazione pulita forzata all'avvio dello script
     current_meeting = load_meeting()
-    if current_meeting:
-        save_meeting(refresh_meeting(current_meeting))
+    save_meeting(current_meeting)
     
     Timer(1.5, open_browser_tabs).start()
     app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)

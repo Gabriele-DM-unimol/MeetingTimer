@@ -87,7 +87,7 @@ def estrai_programma_con_titoli():
         })
         
         # LA TUA LOGICA ORIGINALE (Invariata, cambiano solo i campi del dizionario di output)
-        if sum(durate_controllo) < 46 and sum(durate_controllo) > 29:
+        if sum(durate_controllo) < 46 and sum(durate_controllo) > 25:
             durate_controllo.append(1)
             programma.append({
                 "id": len(programma) + 1,
@@ -100,7 +100,7 @@ def estrai_programma_con_titoli():
             })
 
         # LA TUA LOGICA ORIGINALE
-        if sum(durate_controllo) == 46:
+        if sum(durate_controllo) == 45:
             durate_controllo.append(5)
             programma.append({
                 "id": len(programma) + 1,
@@ -112,7 +112,7 @@ def estrai_programma_con_titoli():
                 "active": False
             })
             
-    programma.append({"id": len(programma) + 1, "name": "Commenti", "start": "19:00:00", "end": "19:00:00", "maxDuration": 180, "duration": 180, "active": False})
+    programma.append({"id": len(programma) + 1, "name": "Commenti conclusivi", "start": "19:00:00", "end": "19:00:00", "maxDuration": 180, "duration": 180, "active": False})
     programma.append({"id": len(programma) + 1, "name": "Cantico e preghiera", "start": "19:00:00", "end": "19:00:00", "maxDuration": 300, "duration": 300, "active": False})
     
     return programma
