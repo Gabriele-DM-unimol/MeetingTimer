@@ -284,6 +284,8 @@ document.addEventListener("alpine:init", () => {
           this.timers[nextTimer].start = new Date();
           this.timers[nextTimer].end = undefined;
           this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
+        } else {
+          this.initialTemplateId = undefined;
         }
 
         this.postTimers();
@@ -323,6 +325,7 @@ document.addEventListener("alpine:init", () => {
           this.timers[activeTimer].active = false;
           this.timers[activeTimer].end = undefined;
           this.timers[activeTimer].duration = this.timers[activeTimer].maxDuration;
+          this.initialTemplateId = undefined;
 
           this.postTimers();
         }
@@ -828,6 +831,8 @@ addTimer() {
           this.timers[nextTimer].start = new Date();
           this.timers[nextTimer].end = undefined;
           this.timers[nextTimer].duration = this.timers[nextTimer].maxDuration;
+        } else {
+          this.initialTemplateId = undefined;
         }
       
         this.postTimers();
@@ -865,6 +870,7 @@ addTimer() {
           current.active = false;
           current.end = undefined;
           current.duration = current.maxDuration;
+          this.initialTemplateId = undefined;
 
           this.postTimers();
         }

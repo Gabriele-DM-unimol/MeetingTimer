@@ -1,5 +1,6 @@
 from queue import Empty, Queue
 import random
+from copy import deepcopy
 from automatic_timing import estrai_programma_con_titoli
 from flask import Flask, Response, request, jsonify, send_from_directory
 import json
@@ -36,6 +37,26 @@ def save_meeting(data):
     with open(MEETING_FILE, "w") as f:
         json.dump(data, f)
 
+
+def build_templates_catalog():
+    path_templates = os.path.join(base_path, "templates.json")
+    with open(path_templates, "r") as f:
+        templates = json.load(f)
+
+    dynamic_templates = deepcopy(templates)
+    infrasettimanale = next((template for template in dynamic_templates if template["name"] == "infrasettimanale_std"), None)
+
+    if infrasettimanale:
+        try:
+            timers_dinamici = estrai_programma_con_titoli()
+            if timers_dinamici:
+                timers_dinamici[0]["start"] = infrasettimanale["conferenceStart"]
+                infrasettimanale["timers"] = timers_dinamici
+        except Exception as e:
+            print(f"Fallback attivo. Errore automazione scraper: {e}")
+
+    return dynamic_templates
+
 def load_meeting():
     """Legge lo stato corrente salvato su disco senza resettarlo."""
     if os.path.exists(MEETING_FILE):
@@ -55,9 +76,7 @@ def get_clean_default_meeting():
     return refreshed_default
     
 def get_default_meeting():
-    path_templates = os.path.join(base_path, "templates.json")
-    with open(path_templates, "r") as f:
-        templates = json.load(f)
+    templates = build_templates_catalog()
         
     current_wday = time.localtime().tm_wday
     
@@ -69,15 +88,6 @@ def get_default_meeting():
     if "endMeetingMode" not in data:
         data["endMeetingMode"] = False
 
-    if data["name"] == "infrasettimanale_std":
-        try:
-            timers_dinamici = estrai_programma_con_titoli()
-            if timers_dinamici:
-                timers_dinamici[0]['start'] = data['conferenceStart']
-                data["timers"] = timers_dinamici
-        except Exception as e:
-            print(f"Fallback attivo. Errore automazione scraper: {e}")
-            
     return data
 
 @app.route("/")
@@ -90,9 +100,7 @@ def admin():
 
 @app.route("/api/templates", methods=["GET"])
 def get_templates():
-    path_templates = os.path.join(base_path, "templates.json")
-    with open(path_templates, "r") as f:
-        return jsonify(json.load(f))
+    return jsonify(build_templates_catalog())
 
 @app.route("/api/meeting/start", methods=["GET"])
 def get_start():
