@@ -32,9 +32,14 @@ def save_meeting(data):
         json.dump(data, f)
 
 def load_meeting():
-    # ESAGERAZIONE 1: A ogni riavvio dell'app ignoriamo completamente la vecchia sessione 
-    # e forziamo sempre la rigenerazione pulita del default per il giorno corrente
-    print("[Server] Riavvio rilevato: ignoro la vecchia queue e rigenero un default pulito...")
+    """Legge lo stato corrente salvato su disco senza resettarlo."""
+    if os.path.exists(MEETING_FILE):
+        try:
+            with open(MEETING_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[Server] Errore lettura file, rigenero default: {e}")
+    
     return get_clean_default_meeting()
 
 def get_clean_default_meeting():

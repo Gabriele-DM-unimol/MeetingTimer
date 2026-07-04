@@ -814,9 +814,9 @@ function stringToDate(timeString) {
           id: timer.id,
           name: timer.name,
           start: timer.start?.toTimeString().slice(0, 8),
-          end: undefined,
+          end: timer.end?.toTimeString().slice(0, 8), // <-- Passagli l'end calcolato dal refresh locale
           active: timer.active,
-          duration: undefined,
+          duration: timer.duration || timer.maxDuration, // <-- NON mandare undefined, passa i secondi reali!
           maxDuration: timer.maxDuration,
         };
       });

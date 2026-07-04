@@ -19,6 +19,8 @@ document.addEventListener("alpine:init", () => {
 
     init() {
       console.log("v. 0.0.3 ~ Giuseppe Di Menna 2026");
+      
+      // Chiedi lo stato corrente del meeting al server
       fetch("api/meeting")
         .then((res) => res.json())
         .then((data) => {
@@ -27,10 +29,15 @@ document.addEventListener("alpine:init", () => {
             this.conferenceEnd = stringToDate(data?.conferenceEnd);
             this.endMeetingMode = !!data?.endMeetingMode;
             this.timers = data?.timers.map((timer) => this.timerMapper(timer));
-            this.startCountdown();
+            
+            // Forziamo un micro-tick per dare tempo ad Alpine di aggiornare i getter computati (come isTimerActive)
+            this.$nextTick(() => {
+              this.startCountdown();
+            });
           }
         });
 
+      // Ascolto in tempo reale dei cambi fatti dall'admin
       this.eventSource.addEventListener("message", (e) => {
         const data = JSON.parse(e?.data);
         if (data && data.conferenceEnd && data.conferenceStart && data.timers?.length) {
@@ -38,7 +45,10 @@ document.addEventListener("alpine:init", () => {
           this.conferenceEnd = stringToDate(data.conferenceEnd);
           this.endMeetingMode = !!data.endMeetingMode;
           this.timers = data.timers.map((timer) => this.timerMapper(timer));
-          this.startCountdown();
+          
+          this.$nextTick(() => {
+            this.startCountdown();
+          });
         }
       });
     },
