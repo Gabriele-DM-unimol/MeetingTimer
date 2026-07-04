@@ -153,22 +153,22 @@
         <div class="w-full lg:w-1/2 h-[45dvh] lg:h-dvh overflow-hidden order-1 lg:order-2">
           <div :class="endMeetingMode ? 'justify-center gap-0' : 'justify-between py-6'" class="h-full border border-neutral-800 bg-[#0a0a0a] flex flex-col items-center p-4 rounded lg:rounded-none relative transition-all">
             
-            <div x-show="!endMeetingMode" class="flex items-center justify-center text-center h-16 w-full px-4 font-timer shrink-0">
-              <span
-                class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-wide uppercase transition-all"
-                :class="[delay ? 'text-red-500 animate-pulse' : 'text-green-500']"
-                x-text="activeTimer?.name"
-              ></span>
-            </div>
+                <div x-show="!endMeetingMode" class="flex items-center justify-center text-center h-20 w-full px-4 font-timer shrink-0">
+                  <span
+                    class="text-3xl md:text-4xl lg:text-6xl font-bold tracking-wide uppercase transition-all"
+                    :class="[delay ? 'text-red-500 animate-pulse' : 'text-green-500']"
+                    x-text="delay ? 'TEMPO SCADUTO' : activeTimer?.name"
+                  ></span>
+                </div>
             
-            <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-4">
-              <div class="flex font-timer font-bold select-none items-baseline">
-                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-7xl lg:text-8xl leading-none transition-colors" x-text="mins"></div>
-                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-6xl lg:text-7xl leading-none px-2 transition-colors">:</div>
-                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-6xl lg:text-7xl leading-none transition-colors" x-text="secs"></div>
-              </div>
+            <div x-show="!endMeetingMode" class="flex flex-col items-center justify-center w-full flex-grow gap-8">
+                <div class="flex font-timer font-bold select-none items-baseline">
+                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[8vw] leading-none transition-colors" x-text="mins"></div>
+                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[6vw] leading-none px-4 transition-colors">:</div>
+                <div :class="[delay ? 'text-red-500' : 'text-green-500']" class="text-[6vw] leading-none transition-colors" x-text="secs"></div>
+                </div>
               
-              <div class="w-9/12 rounded-full h-2.5 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden">
+              <div class="w-9/12 rounded-full h-3 bg-neutral-900 border border-neutral-800 flex flex-row-reverse overflow-hidden">
                 <div
                   x-show="showBar"
                   :class="[barValue === 0 ? 'bg-red-500' : 'bg-green-500']"
