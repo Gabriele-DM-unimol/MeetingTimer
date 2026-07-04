@@ -46,6 +46,9 @@ document.addEventListener("alpine:init", () => {
     // Nuova proprietà sincronizzata
     endMeetingMode: false,
 
+    remoteUrl: '',
+    copied: false,
+
     init() {
       console.log("v. 0.0.6 ~ Giuseppe Di Menna 2026");
       
@@ -60,7 +63,7 @@ document.addEventListener("alpine:init", () => {
           this.startCountdown();
         }
       });
-
+      this.getRemoteBase();
       // 1. Carica prima i template disponibili per la select
       fetch("/api/templates")
         .then((res) => res.json())
@@ -132,6 +135,22 @@ document.addEventListener("alpine:init", () => {
 
     get effectiveStart() {
       return this.isTimerActive ? this.timers[0]?.start?.toTimeString().slice(0, 5) : "";
+    },
+
+    getRemoteBase() {
+      fetch("/api/network-info")
+        .then((res) => res.json())
+        .then((data) => {
+          this.remoteUrl = `http://${data.ip}:${data.port}/`;
+        });
+    },
+
+    copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.copied = true;
+        clearTimeout(this._copiedTimeout);
+        this._copiedTimeout = setTimeout(() => (this.copied = false), 1500);
+      });
     },
 
     // Sposta in su nella coda dei timer modificabili (forward)
@@ -525,6 +544,8 @@ function stringToDate(timeString) {
     
     // Nuova proprietà sincronizzata
     endMeetingMode: false,
+    remoteUrl: '',
+    copied: false,
 
     init() {
       console.log("v. 0.0.6 ~ Giuseppe Di Menna 2026");
@@ -539,6 +560,7 @@ function stringToDate(timeString) {
         if (value?.toTimeString().slice(0, 5) !== oldValue?.toTimeString().slice(0, 5)) {
           this.startCountdown();
         }
+      this.getRemoteBase();
       });
 
       // 1. Carica prima i template disponibili per la select
@@ -632,6 +654,21 @@ addTimer() {
       this.postTimers();
     },
 
+    getRemoteBase() {
+      fetch("/api/network-info")
+        .then((res) => res.json())
+        .then((data) => {
+          this.remoteUrl = `http://${data.ip}:${data.port}/`;
+        });
+    },
+    
+    copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.copied = true;
+        clearTimeout(this._copiedTimeout);
+        this._copiedTimeout = setTimeout(() => (this.copied = false), 1500);
+      });
+    },
     get calculatedEnd() {
       if (!this.isTimerActive) return "";
 

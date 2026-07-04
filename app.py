@@ -308,6 +308,10 @@ def open_browser_tabs():
     
     webbrowser.open(url_admin_local)
 
+@app.route("/api/network-info", methods=["GET"])
+def network_info():
+    return jsonify({"ip": get_local_ip(), "port": 1914})
+
 if __name__ == "__main__":
     # All'avvio riparte dal template del giorno, ma con gli override salvati per quel template.
     current_meeting = get_clean_default_meeting()
