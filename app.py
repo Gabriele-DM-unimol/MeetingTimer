@@ -271,8 +271,8 @@ def open_browser_tabs():
     webbrowser.open(url_admin_local)
 
 if __name__ == "__main__":
-    # FORZATURA: Al riavvio dell'eseguibile/script, resetta completamente lo stato al default di oggi
-    current_meeting = get_clean_default_meeting()
+    # Carica lo stato salvato se presente, altrimenti genera il default iniziale.
+    current_meeting = load_meeting()
     
     Timer(1.5, open_browser_tabs).start()
     app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)
