@@ -173,14 +173,10 @@ def refresh_meeting(data):
         return f"{h:02}:{m:02}:{s:02}"
         
     conference_start = get_seconds(data.get('conferenceStart') or data['timers'][0]['start'])
-    
-    # Il limite massimo invalicabile: Inizio Effettivo + 105 minuti (6300 secondi)
-    MAX_TOTAL_DURATION = 105 * 60 
-    max_conference_end = conference_start + MAX_TOTAL_DURATION
 
     active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
     
-    # Se nessun timer è attivo, timeline lineare standard
+    # Se nessun timer è attivo, timeline lineare standard (nessun orario reale da rispettare ancora)
     if active_index is None:
         current_time = conference_start
         for timer in data['timers']:
@@ -189,17 +185,28 @@ def refresh_meeting(data):
             timer['end'] = format_time(current_time)
         return data
     
-    # 1. Congeliamo i timer passati con la loro durata REALE consumata
-    current_time = conference_start
+    # 1. I timer passati mantengono gli orari REALI già registrati dal client (inizio/fine
+    #    effettivi al momento del cambio) invece di essere ricalcolati sommando le durate a
+    #    partire da conference_start: se l'adunanza inizia in anticipo/ritardo rispetto
+    #    all'orario nominale, ricalcolarli da conference_start produce timestamp fittizi e
+    #    fa impazzire il countdown del client (che si fida ciecamente di questi dati).
     for i in range(active_index):
         t = data['timers'][i]
-        t['start'] = format_time(current_time)
-        current_time += t['duration']
-        t['end'] = format_time(current_time)
+        if not t.get('start'):
+            t['start'] = format_time(conference_start)
+        if not t.get('end'):
+            t['end'] = format_time(get_seconds(t['start']) + t['duration'])
 
-    # 2. Impostiamo lo start del timer attivo corrente
-    data['timers'][active_index]['start'] = format_time(current_time)
-    
+    # 2. Lo start del timer attivo è quello REALE inviato dal client (new Date() al momento
+    #    del click "Avanti"), non un valore ricalcolato: è esattamente questo il dato che
+    #    prima veniva sovrascritto e che generava il countdown senza senso sul client.
+    current_time = get_seconds(data['timers'][active_index]['start'])
+
+    # Il limite massimo invalicabile: Inizio Effettivo (reale) + 105 minuti (6300 secondi)
+    MAX_TOTAL_DURATION = 105 * 60
+    effective_start = get_seconds(data['timers'][0].get('start')) or conference_start
+    max_conference_end = effective_start + MAX_TOTAL_DURATION
+
     # Calcoliamo il tempo che rimarrebbe alla fine della parte attiva corrente
     time_after_active = current_time + data['timers'][active_index]['duration']
     
