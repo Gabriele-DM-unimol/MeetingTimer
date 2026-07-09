@@ -547,6 +547,8 @@ function stringToDate(timeString) {
     remoteUrl: '',
     copied: false,
 
+    warningMessage: '',
+
     init() {
       console.log("v. 0.0.6 ~ Giuseppe Di Menna 2026");
       
@@ -631,13 +633,12 @@ addTimer() {
         const proiezioneFineMeeting = inizioPrimoTimerFuturo + ((durataCodaFuturaEsistente + durataNuovaParteSecondi) * 1000);
 
         if (proiezioneFineMeeting > orarioMassimoFine) {
-          alert('Attenzione: Non puoi aggiungere questa parte. Supereresti l\'orario massimo di chiusura calcolato dall\'inizio reale (+105 min)!');
-          return;
+          this.showWarning('Non puoi aggiungere questa parte: supereresti l\'orario massimo di chiusura calcolato dall\'inizio reale (+105 min).');
         }
       } else {
         // Se non è ancora partito, verifichiamo solo il cumulo dei minuti nominali
         if (sommaAttualeSecondi + durataNuovaParteSecondi > 105 * 60) {
-          alert('Attenzione: Non puoi aggiungere questa parte. Il tempo totale configurato supererebbe i 105 minuti!');
+          this.showWarning('Non puoi aggiungere questa parte: il tempo totale configurato supererebbe i 105 minuti.');
           return;
         }
       }
@@ -668,6 +669,12 @@ addTimer() {
         clearTimeout(this._copiedTimeout);
         this._copiedTimeout = setTimeout(() => (this.copied = false), 1500);
       });
+    },
+  
+    showWarning(msg) {
+      this.warningMessage = msg;
+      clearTimeout(this._warningTimeout);
+      this._warningTimeout = setTimeout(() => (this.warningMessage = ''), 4000);
     },
     get calculatedEnd() {
       if (!this.isTimerActive) return "";

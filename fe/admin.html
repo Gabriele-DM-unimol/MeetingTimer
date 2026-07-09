@@ -39,6 +39,15 @@
     x-init="initClock();" 
     class="bg-neutral-950 text-neutral-100 min-h-dvh select-none"
   >
+    <div x-show="warningMessage" x-transition.opacity.duration.300ms x-cloak class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100%-2rem)] flex items-center gap-2 px-4 py-3 rounded-lg border border-red-500/40 bg-red-950/90 backdrop-blur-md text-red-200 text-sm shadow-2xl">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5 text-red-400 shrink-0">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      </svg>
+      <span x-text="warningMessage"></span>
+      <button type="button" @click="warningMessage = ''" class="ml-auto text-red-400/70 hover:text-red-300 shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
     <template x-if="!loading">
       <div class="flex flex-col lg:flex-row w-full min-h-dvh justify-between gap-3 p-2 lg:p-0">
         
@@ -198,14 +207,14 @@
                           let proiezioneFineMeeting = inizioRealeMeeting + ((durataPassati + durataFuturi) * 1000);
 
                           if (proiezioneFineMeeting > orarioMassimoFine) {
-                            alert('Attenzione: Aumentando questa parte supereresti l\'orario massimo di chiusura (Inizio Reale + 105 minuti)!');
+                            showWarning('Aumentando questa parte supereresti l\'orario massimo di chiusura (Inizio Reale + 105 minuti).'); return;
                             return;
                           }
                         } else {
                           // Se NON è ancora partito, usiamo il controllo standard sul cumulo delle maxDuration nominali
                           let sommaAttualeSecondi = timers.reduce((sum, t) => sum + (t.id === timer.id ? t.maxDuration + 60 : t.maxDuration), 0);
                           if (sommaAttualeSecondi > limiteMassimoSecondi) {
-                            alert('Attenzione: Il totale delle parti configurate non può superare i 105 minuti!');
+                            showWarning('Il totale delle parti configurate non può superare i 105 minuti.'); return;
                             return;
                           }
                         }
