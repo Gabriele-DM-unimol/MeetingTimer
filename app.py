@@ -1,320 +1,113 @@
-from queue import Empty, Queue
-import random
-from copy import deepcopy
-from automatic_timing import estrai_programma_con_titoli
-from flask import Flask, Response, request, jsonify, send_from_directory
 import json
-import os
-import time
 import socket
 import webbrowser
-from threading import Timer,Lock
-import sys
+from threading import Timer
 
-if getattr(sys, 'frozen', False):
-    base_path = sys._MEIPASS
-else:
-    base_path = os.path.dirname(os.path.abspath(__file__))
+from flask import Flask, Response, jsonify, request, send_from_directory
 
-app = Flask(
-    __name__, 
-    static_folder=os.path.join(base_path, "fe"),
-    static_url_path=""
-)
-
-if os.name == 'nt':
-    appdata_dir = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'TimerSincronizzato')
-else:
-    appdata_dir = os.path.expanduser('~/.timersincronizzato')
-
-os.makedirs(appdata_dir, exist_ok=True)
-MEETING_FILE = os.path.join(appdata_dir, "queue.json")
-TEMPLATE_STATE_FILE = os.path.join(appdata_dir, "templates_state.json")
-
-clients = []
-clients_lock = Lock()
-
-def save_meeting(data):
-    with open(MEETING_FILE, "w") as f:
-        json.dump(data, f)
+from meeting_service import MeetingService
+from paths import FE_PATH, MEETING_FILE, TEMPLATE_STATE_FILE, TEMPLATES_FILE
+from sse import SseBroker
+from storage import JsonStore
+from templates_service import TemplateService
 
 
-def load_template_state():
-    if os.path.exists(TEMPLATE_STATE_FILE):
-        try:
-            with open(TEMPLATE_STATE_FILE, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[Server] Errore lettura template state, ignoro override: {e}")
-    return {}
+PORT = 1914
 
 
-def save_template_state(template_state):
-    with open(TEMPLATE_STATE_FILE, "w") as f:
-        json.dump(template_state, f)
+def create_app():
+    app = Flask(__name__, static_folder=FE_PATH, static_url_path="")
+    sse_broker = SseBroker()
+    template_service = TemplateService(
+        templates_file=TEMPLATES_FILE,
+        template_state_store=JsonStore(TEMPLATE_STATE_FILE),
+    )
+    meeting_service = MeetingService(
+        meeting_store=JsonStore(MEETING_FILE),
+        template_service=template_service,
+    )
 
+    @app.route("/")
+    def client():
+        return send_from_directory(FE_PATH, "client.html")
 
-def build_templates_catalog():
-    path_templates = os.path.join(base_path, "templates.json")
-    with open(path_templates, "r") as f:
-        templates = json.load(f)
+    @app.route("/admin")
+    def admin():
+        return send_from_directory(FE_PATH, "admin.html")
 
-    dynamic_templates = deepcopy(templates)
-    template_state = load_template_state()
-    infrasettimanale = next((template for template in dynamic_templates if template["name"] == "infrasettimanale_std"), None)
+    @app.route("/api/templates", methods=["GET"])
+    def get_templates():
+        return jsonify(template_service.build_catalog())
 
-    if infrasettimanale:
-        try:
-            timers_dinamici = estrai_programma_con_titoli()
-            if timers_dinamici:
-                timers_dinamici[0]["start"] = infrasettimanale["conferenceStart"]
-                infrasettimanale["timers"] = timers_dinamici
-        except Exception as e:
-            print(f"Fallback attivo. Errore automazione scraper: {e}")
+    @app.route("/api/meeting/start", methods=["GET"])
+    def get_start():
+        print("[Server] Richiesta cambio template / reset: eseguo il refresh totale...")
+        meeting = meeting_service.reset_to_default()
+        sse_broker.broadcast(json.dumps(meeting))
+        return jsonify(meeting)
 
-    for template in dynamic_templates:
-        overrides = template_state.get(str(template.get("id")), {})
-        if "conferenceStart" in overrides:
-            template["conferenceStart"] = overrides["conferenceStart"]
-        if "conferenceEnd" in overrides:
-            template["conferenceEnd"] = overrides["conferenceEnd"]
+    @app.route("/api/meeting", methods=["GET"])
+    def get_meeting():
+        response = jsonify(meeting_service.load_current())
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
 
-    return dynamic_templates
+    @app.route("/api/meeting", methods=["POST"])
+    def post_meeting():
+        meeting = request.get_json()
+        refreshed = meeting_service.save(meeting)
+        sse_broker.broadcast(json.dumps(refreshed))
+        return jsonify(refreshed)
 
-def load_meeting():
-    """Legge lo stato corrente salvato su disco senza resettarlo."""
-    if os.path.exists(MEETING_FILE):
-        try:
-            with open(MEETING_FILE, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[Server] Errore lettura file, rigenero default: {e}")
-    
-    return get_clean_default_meeting()
+    @app.route("/stream")
+    def stream():
+        client_queue = sse_broker.subscribe()
+        return Response(
+            sse_broker.stream(client_queue),
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Content-Type": "text/event-stream",
+            },
+        )
 
-def get_clean_default_meeting():
-    """Genera il default pulito, calcola la timeline esatta e lo salva su disco."""
-    raw_default = get_default_meeting()
-    refreshed_default = refresh_meeting(raw_default)
-    save_meeting(refreshed_default)
-    return refreshed_default
-    
-def get_default_meeting():
-    templates = build_templates_catalog()
-        
-    current_wday = time.localtime().tm_wday
-    
-    if current_wday < 5:
-        data = next(x for x in templates if x["name"] == "infrasettimanale_std")
-    else:
-        data = next(x for x in templates if x["name"] == "fine_settimana_std")
-    
-    if "endMeetingMode" not in data:
-        data["endMeetingMode"] = False
+    @app.route("/api/network-info", methods=["GET"])
+    def network_info():
+        return jsonify({"ip": get_local_ip(), "port": PORT})
 
-    return data
+    @app.route("/<path:filename>")
+    def static_files(filename):
+        return send_from_directory(FE_PATH, filename)
 
-@app.route("/")
-def client():
-    return send_from_directory(os.path.join(base_path, "fe"), "client.html")
+    app.meeting_service = meeting_service
+    return app
 
-@app.route("/admin")
-def admin():
-    return send_from_directory(os.path.join(base_path, "fe"), "admin.html")
-
-@app.route("/api/templates", methods=["GET"])
-def get_templates():
-    return jsonify(build_templates_catalog())
-
-@app.route("/api/meeting/start", methods=["GET"])
-def get_start():
-    # ESAGERAZIONE 2: A ogni richiesta di start/cambio template ricalcola tutto da zero
-    print("[Server] Richiesta cambio template / reset: eseguo il refresh totale...")
-    default_meeting = get_clean_default_meeting()
-    broadcast_message(json.dumps(default_meeting))
-    return jsonify(default_meeting)
-
-@app.route("/api/meeting", methods=["GET"])
-def get_meeting():
-    res = jsonify(load_meeting())
-    res.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    res.headers["Pragma"] = "no-cache"
-    res.headers["Expires"] = "0"
-    return res
-
-@app.route("/api/meeting", methods=["POST"])
-def post_meeting():
-    data = request.get_json()
-    refreshed = refresh_meeting(data)
-    save_meeting(refreshed)
-    if data.get("id") is not None:
-        template_state = load_template_state()
-        template_state[str(data["id"])] = {
-            "conferenceStart": data.get("conferenceStart", refreshed.get("conferenceStart")),
-            "conferenceEnd": data.get("conferenceEnd", refreshed.get("conferenceEnd")),
-        }
-        save_template_state(template_state)
-    broadcast_message(json.dumps(refreshed))  
-    return jsonify({"status": "ok"})
-
-def broadcast_message(message):
-    with clients_lock:
-        for q in clients:
-            q.put(message)
-
-def refresh_meeting(data):
-    def get_seconds(time_str):
-        if not time_str: return 0
-        h, m, s = map(int, time_str.split(':'))
-        return h * 3600 + m * 60 + s
-    
-    def format_time(seconds):
-        h, m, s = int(seconds // 3600), int((seconds % 3600) // 60), int(seconds % 60)
-        return f"{h:02}:{m:02}:{s:02}"
-        
-    conference_start = get_seconds(data.get('conferenceStart') or data['timers'][0]['start'])
-
-    active_index = next((i for i, t in enumerate(data['timers']) if t['active']), None)
-    
-    # Se nessun timer è attivo, timeline lineare standard (nessun orario reale da rispettare ancora)
-    if active_index is None:
-        current_time = conference_start
-        for timer in data['timers']:
-            timer['start'] = format_time(current_time)
-            current_time += timer.get('duration', timer.get('maxDuration', 60))
-            timer['end'] = format_time(current_time)
-        return data
-    
-    # 1. I timer passati mantengono gli orari REALI già registrati dal client (inizio/fine
-    #    effettivi al momento del cambio) invece di essere ricalcolati sommando le durate a
-    #    partire da conference_start: se l'adunanza inizia in anticipo/ritardo rispetto
-    #    all'orario nominale, ricalcolarli da conference_start produce timestamp fittizi e
-    #    fa impazzire il countdown del client (che si fida ciecamente di questi dati).
-    for i in range(active_index):
-        t = data['timers'][i]
-        if not t.get('start'):
-            t['start'] = format_time(conference_start)
-        if not t.get('end'):
-            t['end'] = format_time(get_seconds(t['start']) + t['duration'])
-
-    # 2. Lo start del timer attivo è quello REALE inviato dal client (new Date() al momento
-    #    del click "Avanti"), non un valore ricalcolato: è esattamente questo il dato che
-    #    prima veniva sovrascritto e che generava il countdown senza senso sul client.
-    current_time = get_seconds(data['timers'][active_index]['start'])
-
-    # Il limite massimo invalicabile: Inizio Effettivo (reale) + 105 minuti (6300 secondi)
-    MAX_TOTAL_DURATION = 105 * 60
-    effective_start = get_seconds(data['timers'][0].get('start')) or conference_start
-    max_conference_end = effective_start + MAX_TOTAL_DURATION
-
-    # Calcoliamo il tempo che rimarrebbe alla fine della parte attiva corrente
-    time_after_active = current_time + data['timers'][active_index]['duration']
-    
-    # 3. COMPENSAZIONE PROPORZIONALE: Scatta solo sulle parti STRETTAMENTE FUTURE
-    future_index = active_index + 1
-    if future_index < len(data['timers']):
-        # Quanto tempo teorico ci rimarrebbe prima di sforare i 105 minuti?
-        remaining_budget = max_conference_end - time_after_active
-        
-        # Somma delle maxDuration di tutti i timer futuri configurati
-        total_future_max_duration = sum(t['maxDuration'] for t in data['timers'][future_index:])
-        
-        # Se stiamo sforando il budget totale (o se il tempo rimasto differisce dal nominale richiesto)
-        if remaining_budget < total_future_max_duration:
-            # Identifichiamo solo i timer futuri che durano più di 5 minuti (300 secondi)
-            adjustable_timers = [t for t in data['timers'][future_index:] if t['maxDuration'] > 300]
-            
-            if adjustable_timers:
-                # Calcoliamo quanta durata nominale totale hanno i timer sacrificabili
-                total_adjustable_max = sum(t['maxDuration'] for t in adjustable_timers)
-                # Durata totale dei timer che NON possiamo toccare (quelli già sotto i 5 minuti)
-                non_adjustable_max = total_future_max_duration - total_adjustable_max
-                
-                # Il budget effettivo da spartire tra i timer modificabili
-                budget_for_adjustable = remaining_budget - non_adjustable_max
-                
-                # Distribuzione proporzionale del budget rimasto
-                for timer in adjustable_timers:
-                    if total_adjustable_max > 0:
-                        # Quota proporzionale basata sul peso del timer rispetto agli altri modificabili
-                        proportion = timer['maxDuration'] / total_adjustable_max
-                        nuova_durata = int(budget_for_adjustable * proportion)
-                        
-                        # Garantiamo comunque un minimo invalicabile di 300 secondi (5 min) come da specifica
-                        timer['duration'] = max(300, nuova_durata)
-            else:
-                # Se non ci sono timer > 300s da sacrificare, mantengono la maxDuration
-                for t in data['timers'][future_index:]:
-                    t['duration'] = t['maxDuration']
-        else:
-            # Se siamo larghi coi tempi e non stiamo sforando i 105 minuti, i futuri tornano/restano standard
-            for t in data['timers'][future_index:]:
-                t['duration'] = t['maxDuration']
-    
-    # 4. Rigeneriamo i timestamp grafici di start/end per la parte attiva e future
-    current_time = get_seconds(data['timers'][active_index]['start'])
-    for timer in data['timers'][active_index:]:
-        timer['start'] = format_time(current_time)
-        current_time += timer['duration']
-        timer['end'] = format_time(current_time)
-
-    return data
-
-@app.route("/stream")
-def stream():
-    def event_stream(q):
-        try:
-            while True:
-                try: 
-                    data = q.get(timeout=30)
-                    yield f"data: {data}\n\n"
-                except Empty:
-                    yield ":\n\n" 
-        finally:
-            with clients_lock:  # <--- Protegge la rimozione dal thread
-                if q in clients:
-                    clients.remove(q)
-    
-    q = Queue()
-    with clients_lock:  # <--- Protegge l'inserimento nel thread
-        clients.append(q)
-        
-    return Response(event_stream(q), 
-                    headers={"Cache-Control": "no-cache",
-                             "Connection": "keep-alive",
-                             "Content-Type": "text/event-stream"})
-
-@app.route("/<path:filename>")
-def static_files(filename):
-    return send_from_directory(os.path.join(base_path, "fe"), filename)
 
 def get_local_ip():
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp_socket:
+            udp_socket.connect(("8.8.8.8", 80))
+            return udp_socket.getsockname()[0]
     except Exception:
         return "127.0.0.1"
 
-def open_browser_tabs():
-    port = 1914
-    ip_pc = get_local_ip()
-    url_admin_local = f"http://127.0.0.1:{port}/admin"
-    
-    print(f"\n[Browser] Lancio automatico del solo pannello Admin su: {url_admin_local}")
-    print(f"[Rete Locale] Regia sul secondo schermo configurabile da remoto a: http://{ip_pc}:{port}/\n")
-    
-    webbrowser.open(url_admin_local)
 
-@app.route("/api/network-info", methods=["GET"])
-def network_info():
-    return jsonify({"ip": get_local_ip(), "port": 1914})
+def open_browser_tabs():
+    admin_url = f"http://127.0.0.1:{PORT}/admin"
+    local_network_url = f"http://{get_local_ip()}:{PORT}/"
+
+    print(f"\n[Browser] Lancio automatico del solo pannello Admin su: {admin_url}")
+    print(f"[Rete Locale] Regia sul secondo schermo configurabile da remoto a: {local_network_url}\n")
+
+    webbrowser.open(admin_url)
+
+
+app = create_app()
+
 
 if __name__ == "__main__":
-    # All'avvio riparte dal template del giorno, ma con gli override salvati per quel template.
-    current_meeting = get_clean_default_meeting()
-    
+    app.meeting_service.reset_to_default()
     Timer(1.5, open_browser_tabs).start()
-    app.run(host="0.0.0.0", port=1914, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=PORT, debug=False, threaded=True)

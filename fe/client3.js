@@ -1,4 +1,6 @@
 document.addEventListener("alpine:init", () => {
+  const { getClockObj, getEndMeetingGreeting, stringToDate } = window.TimerAppUtils;
+
   Alpine.data("client", () => ({
     eventSource: new EventSource("/stream"),
     conferenceStart: null,
@@ -16,9 +18,15 @@ document.addEventListener("alpine:init", () => {
     
     // Proprietà reattiva per il layout di fine adunanza
     endMeetingMode: false,
+    clock: { hm: "", s: "" },
+    isFullscreen: false,
+    mouseFermo: false,
+    mouseTimer: null,
 
     init() {
       console.log("v. 0.0.3 ~ Giuseppe Di Menna 2026");
+      this.initClock();
+      this.initProjection();
       
       // Chiedi lo stato corrente del meeting al server
       fetch("api/meeting")
@@ -51,6 +59,53 @@ document.addEventListener("alpine:init", () => {
           });
         }
       });
+    },
+
+    initClock() {
+      this.clock = getClockObj();
+      setInterval(() => {
+        this.clock = getClockObj();
+      }, 1000);
+    },
+
+    initProjection() {
+      this.resetMouseTimer();
+      document.addEventListener("fullscreenchange", () => {
+        this.isFullscreen = !!document.fullscreenElement;
+        if (!this.isFullscreen) this.mouseFermo = false;
+      });
+      this.proiettaSuSecondoSchermo();
+    },
+
+    getEndMeetingGreeting() {
+      return getEndMeetingGreeting(this.clock);
+    },
+
+    resetMouseTimer() {
+      this.mouseFermo = false;
+      clearTimeout(this.mouseTimer);
+      this.mouseTimer = setTimeout(() => {
+        if (this.isFullscreen) this.mouseFermo = true;
+      }, 2000);
+    },
+
+    async proiettaSuSecondoSchermo() {
+      try {
+        if ("getScreenDetails" in window) {
+          const screenDetails = await window.getScreenDetails();
+          const secondaryScreen = screenDetails.screens.find((screen) => !screen.isPrimary);
+
+          if (secondaryScreen) {
+            await document.documentElement.requestFullscreen({ screen: secondaryScreen });
+            return;
+          }
+        }
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        try {
+          await document.documentElement.requestFullscreen();
+        } catch (fallbackError) {}
+      }
     },
     
     startCountdown(start = undefined, end = undefined, duration = undefined) {
@@ -117,15 +172,3 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 });
-
-function stringToDate(timeString) {
-  const now = new Date();
-  if (timeString.length > 5) {
-    const [hours, minutes, seconds] = timeString.split(":").map(Number);
-    now.setHours(hours, minutes, seconds, 0);
-  } else {
-    const [hours, minutes] = timeString.split(":").map(Number);
-    now.setHours(hours, minutes, 0, 0);
-  }
-  return now;
-}

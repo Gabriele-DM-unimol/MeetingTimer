@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 
+    <script type="text/javascript" src="common.js"></script>
     <script type="text/javascript" src="client3.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.14.8/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
@@ -22,59 +23,7 @@
     </style>
   </head>
   <body 
-    x-data="Object.assign(client(), { 
-      getClockObj() {
-        const now = new Date();
-        return {
-          hm: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          s: String(now.getSeconds()).padStart(2, '0')
-        }
-      },
-      getEndMeetingGreeting() {
-        const hour = Number(this.clock.hm.slice(0, 2));
-        return hour >= 14 ? 'BUONA SERATA' : 'BUONA GIORNATA';
-      },
-      clock: { hm: '', s: '' },
-      isFullscreen: false,
-      mouseFermo: false,
-      mouseTimer: null,
-      
-      resetMouseTimer() {
-        this.mouseFermo = false;
-        clearTimeout(this.mouseTimer);
-        this.mouseTimer = setTimeout(() => {
-          if (this.isFullscreen) this.mouseFermo = true;
-        }, 2000);
-      },
-
-      async proiettaSuSecondoSchermo() {
-        try {
-          if ('getScreenDetails' in window) {
-            const screenDetails = await window.getScreenDetails();
-            const secondaryScreen = screenDetails.screens.find(s => !s.isPrimary);
-            
-            if (secondaryScreen) {
-              // Forza il fullscreen direttamente sul secondo schermo senza muovere prima la finestra
-              await document.documentElement.requestFullscreen({ screen: secondaryScreen });
-              return;
-            }
-          }
-          await document.documentElement.requestFullscreen();
-        } catch (err) {
-          try { await document.documentElement.requestFullscreen(); } catch(e){}
-        }
-      }
-    })"
-    x-init="
-      clock = getClockObj(); 
-      setInterval(() => { clock = getClockObj() }, 1000);
-      resetMouseTimer();
-      document.addEventListener('fullscreenchange', () => {
-        isFullscreen = !!document.fullscreenElement;
-        if (!isFullscreen) mouseFermo = false;
-      });
-      proiettaSuSecondoSchermo();
-    "
+    x-data="client()"
     @click="proiettaSuSecondoSchermo()"
     @mousemove="resetMouseTimer()"
     :class="{ 'hide-cursor': mouseFermo, 'justify-center gap-0': endMeetingMode, 'justify-between py-8': !endMeetingMode }"

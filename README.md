@@ -17,7 +17,6 @@ The system allows an administrator to control the timeline and duration of indiv
 ## ✨ Main Features
 
 *   **Real-Time Synchronization**: Instant updates across all connected clients (control room screens, podium, displays) via SSE (Server-Sent Events).
-*   **Proportional Compensation Algorithm**: If a speech exceeds the established time, the system automatically and proportionally recalculates the duration of future timers (longer than 5 minutes) to ensure the meeting's maximum limit (e.g., 105 nominal minutes) is respected.
 *   **Template Management**: Pre-defined agenda loading based on the day of the week (`infrasettimanale_std` / `fine_settimana_std`) via JSON configuration files.
 *   **Automated Scraping**: Integration for dynamic extraction of the program and speech titles at startup.
 *   **Portable Architecture**: Prepared to run either as a Python script or as a "frozen" standalone executable (e.g., via PyInstaller), saving the application state in the `AppData` folder (Windows) or `Home` (Linux/macOS).

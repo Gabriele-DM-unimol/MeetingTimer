@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
 
+    <script type="text/javascript" src="common.js"></script>
     <script type="text/javascript" src="admin3.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -18,25 +19,7 @@
       .font-timer { font-family: 'Oswald', sans-serif; }
     </style>
   </head>
-  <body x-data="Object.assign(admin(), {
-      getClockObj() {
-        const now = new Date();
-        return {
-          hm: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          s: String(now.getSeconds()).padStart(2, '0')
-        }
-      },
-      getEndMeetingGreeting() {
-        const hour = Number(this.clock.hm.slice(0, 2));
-        return hour >= 14 ? 'BUONA SERATA' : 'BUONA GIORNATA';
-      },
-      clock: { hm: '', s: '' },
-      initClock() {
-        this.clock = this.getClockObj();
-        setInterval(() => { this.clock = this.getClockObj() }, 1000);
-      }
-    })" 
-    x-init="initClock();" 
+  <body x-data="admin()"
     class="bg-neutral-950 text-neutral-100 min-h-dvh select-none"
   >
     <div x-show="warningMessage" x-transition.opacity.duration.300ms x-cloak class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100%-2rem)] flex items-center gap-2 px-4 py-3 rounded-lg border border-red-500/40 bg-red-950/90 backdrop-blur-md text-red-200 text-sm shadow-2xl">
@@ -44,31 +27,39 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
       </svg>
       <span x-text="warningMessage"></span>
-      <button type="button" @click="warningMessage = ''" class="ml-auto text-red-400/70 hover:text-red-300 shrink-0">
+      <button type="button" @click="clearWarning()" class="ml-auto text-red-400/70 hover:text-red-300 shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
       </button>
     </div>
     <template x-if="!loading">
-      <div class="flex flex-col lg:flex-row w-full min-h-dvh justify-between gap-3 p-2 lg:p-0">
+      <div class="flex flex-col lg:flex-row w-full h-dvh overflow-hidden justify-between gap-0 p-0 lg:min-h-dvh lg:h-auto lg:overflow-visible lg:gap-3 lg:p-0">
         
         <!-- PANNELLO DI CONTROLLO (SINISTRA) -->
-        <div class="w-full lg:w-1/2 px-3 pt-0 pb-6 h-auto lg:h-dvh lg:overflow-y-auto order-2 lg:order-1">
+        <div class="w-full lg:w-1/2 px-3 pt-0 pb-6 h-[calc(100dvh-60px)] overflow-y-auto bg-neutral-950 order-2 lg:h-dvh lg:overflow-y-auto lg:order-1">
           <div class="sticky top-0 z-10 bg-neutral-950 pt-3 pb-4 -mx-3 px-3 border-b border-neutral-800">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 pt-3">
               <div class="flex flex-col gap-1">
-                <label class="pl-0.5 text-xs text-neutral-400">Inizio [ reale: <strong x-text="effectiveStart" class="text-green-500"></strong> ]</label>
+                <label class="pl-0.5 text-xs text-neutral-400">
+                  <span x-text="isTimerActive ? 'Inizio effettivo' : 'Inizio'"></span>
+                  <span class="hidden sm:inline">[ reale: <strong x-text="effectiveStart" class="text-green-500"></strong> ]</span>
+                </label>
                 <div class="flex items-center gap-2">
-                  <input type="time" x-model="conferenceStartVal" :disabled="isTimerActive || endMeetingMode" @input="setEndAuto(); postTimers()" class="min-w-0 flex-1 min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:border-green-500 disabled:opacity-50" />
-                  <button type="button" @click="saveTemplateStart()" :disabled="!selectedTemplateId || isTimerActive || endMeetingMode" class="min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-[11px] font-medium text-neutral-300 active:bg-neutral-800 disabled:opacity-40 whitespace-nowrap">
+                  <input type="time" x-model="conferenceStartVal" :disabled="isTimerActive || endMeetingMode" @input="updateConferenceStart()" :class="isTimerActive ? 'hidden sm:block' : ''" class="min-w-0 flex-1 min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:border-green-500 disabled:opacity-50" />
+                  <div x-show="isTimerActive" class="sm:hidden min-w-0 flex-1 min-h-[44px] rounded border border-green-500/40 bg-green-950/20 px-3 py-2 text-sm font-mono font-bold text-green-400 flex items-center" x-text="effectiveStart || conferenceStartVal"></div>
+                  <button type="button" @click="saveTemplateStart()" :disabled="!selectedTemplateId || isTimerActive || endMeetingMode" class="hidden sm:block min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-[11px] font-medium text-neutral-300 active:bg-neutral-800 disabled:opacity-40 whitespace-nowrap">
                     Salva
                   </button>
                 </div>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="pl-0.5 text-xs text-neutral-400">Fine [ prevista: <strong x-text="calculatedEnd" class="text-green-500"></strong> ]</label>
-                <input type="time" x-model="conferenceEndVal" :disabled="isTimerActive || endMeetingMode" @input="setStartAuto(); postTimers()" class="w-full min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:border-green-500 disabled:opacity-50" />
+                <label class="pl-0.5 text-xs text-neutral-400">
+                  <span x-text="isTimerActive ? 'Fine prevista' : 'Fine'"></span>
+                  <span class="hidden sm:inline">[ prevista: <strong x-text="calculatedEnd" class="text-green-500"></strong> ]</span>
+                </label>
+                <input type="time" x-model="conferenceEndVal" :disabled="isTimerActive || endMeetingMode" @input="updateConferenceEnd()" :class="isTimerActive ? 'hidden sm:block' : ''" class="w-full min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:border-green-500 disabled:opacity-50" />
+                <div x-show="isTimerActive" class="sm:hidden min-h-[44px] rounded border border-green-500/40 bg-green-950/20 px-3 py-2 text-sm font-mono font-bold text-green-400 flex items-center" x-text="calculatedEnd || conferenceEndVal"></div>
               </div>
-              <div class="flex flex-col gap-1">
+              <div class="hidden md:flex flex-col gap-1">
                 <label class="pl-0.5 text-xs text-neutral-400">Template</label>
                 <div class="flex items-center gap-1.5">
                   <div class="relative flex-1 min-w-0">
@@ -90,11 +81,11 @@
             <div class="mt-4">
               <label class="pl-0.5 text-[10px] uppercase tracking-wider text-neutral-600">Controllo adunanza</label>
               <div class="grid grid-cols-2 gap-2 mt-1.5">
-                <button type="button" :disabled="!isTimerActive || endMeetingMode" @click="back(); startCountdown(); postTimers()" class="min-h-[52px] flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900 rounded-lg active:bg-neutral-800 disabled:opacity-40 custom-touch-target transition-all">
+                <button type="button" :disabled="!isTimerActive || endMeetingMode" @click="startPreviousTimer()" class="min-h-[52px] flex items-center justify-center gap-2 border border-neutral-700 bg-neutral-900 rounded-lg active:bg-neutral-800 disabled:opacity-40 custom-touch-target transition-all">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-5 fill-white"><path d="m4.5 18.75 7.5-7.5 7.5 7.5M4.5 12.75l7.5-7.5 7.5 7.5"/></svg>
                   <span class="text-sm font-medium text-neutral-200">Indietro</span>
                 </button>
-                <button type="button" @click="next(); startCountdown(); postTimers()" :disabled="endMeetingMode" :class="[isTimerActive ? 'border-neutral-700 bg-neutral-900':'border-green-500 bg-green-950/30']" class="min-h-[52px] flex items-center justify-center gap-2 border rounded-lg active:bg-neutral-800 custom-touch-target disabled:opacity-40 transition-all">
+                <button type="button" @click="startNextTimer()" :disabled="endMeetingMode" :class="[isTimerActive ? 'border-neutral-700 bg-neutral-900':'border-green-500 bg-green-950/30']" class="min-h-[52px] flex items-center justify-center gap-2 border rounded-lg active:bg-neutral-800 custom-touch-target disabled:opacity-40 transition-all">
                   <span class="text-sm font-medium text-neutral-200" x-text="isTimerActive ? 'Avanti' : 'Avvia'"></span>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="size-5 fill-white"><path d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"/></svg>
                 </button>
@@ -181,58 +172,21 @@
                   <input x-model="timer.name" @change="postTimers()" type="text" class="w-full text-base px-2 py-1 bg-transparent border border-transparent focus:border-neutral-700 rounded text-white" />                  
                   <div class="flex items-center border border-neutral-700 rounded bg-neutral-950 overflow-hidden shrink-0">
                     <!-- PULSANTE MENO -->
-                    <button type="button" :disabled="timer.active" x-on:click="timer.maxDuration = Math.max(60, timer.maxDuration - 60); timer.duration = timer.maxDuration; postTimers()" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
+                    <button type="button" :disabled="timer.active" @click="decrementTimerDuration(timer)" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">-</button>
                     
                     <!-- MINUTI CORRENTI -->
-                    <span class="w-10 text-center text-sm font-mono font-bold text-green-500" x-text="Math.floor(timer.maxDuration / 60)"></span>
+                    <span class="w-10 text-center text-sm font-mono font-bold transition-colors" :class="!timer.active && timer.duration !== timer.maxDuration ? 'text-amber-400' : 'text-green-500'" x-text="Math.floor((timer.active ? timer.maxDuration : timer.duration) / 60)"></span>
                     <!-- PULSANTE PIÙ -->
-                    <button type="button" 
-                      :disabled="timer.active || meetingInDelay" 
-                      x-on:click="
-                        let limiteMassimoSecondi = 105 * 60;
-
-                        if (isTimerActive && timers[0]?.start) {
-                          // 1. Recuperiamo lo start assoluto del primo timer (Inizio Reale dell'adunanza)
-                          let inizioRealeMeeting = timers[0].start.getTime();
-                          let orarioMassimoFine = inizioRealeMeeting + (limiteMassimoSecondi * 1000);
-
-                          // 2. Calcoliamo la durata totale che l'adunanza avrebbe dopo questo incremento:
-                          // - Per i passati (slicedTimers[0]): usiamo la loro 'duration' reale già consumata
-                          let durataPassati = slicedTimers[0].reduce((sum, t) => sum + t.duration, 0);
-
-                          // - Per i futuri/attivi (slicedTimers[1]): sommiamo le loro maxDuration nominali
-                          //   aggiungendo già i 60 secondi al timer che stiamo cercando di incrementare
-                          let durataFuturi = slicedTimers[1].reduce((sum, t) => sum + (t.id === timer.id ? t.maxDuration + 60 : t.maxDuration), 0);
-
-                          let proiezioneFineMeeting = inizioRealeMeeting + ((durataPassati + durataFuturi) * 1000);
-
-                          if (proiezioneFineMeeting > orarioMassimoFine) {
-                            showWarning('Aumentando questa parte supereresti l\'orario massimo di chiusura (Inizio Reale + 105 minuti).'); return;
-                            return;
-                          }
-                        } else {
-                          // Se NON è ancora partito, usiamo il controllo standard sul cumulo delle maxDuration nominali
-                          let sommaAttualeSecondi = timers.reduce((sum, t) => sum + (t.id === timer.id ? t.maxDuration + 60 : t.maxDuration), 0);
-                          if (sommaAttualeSecondi > limiteMassimoSecondi) {
-                            showWarning('Il totale delle parti configurate non può superare i 105 minuti.'); return;
-                            return;
-                          }
-                        }
-
-                        timer.maxDuration = timer.maxDuration + 60; 
-                        timer.duration = timer.maxDuration; 
-                        postTimers();
-                      " 
-                      class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
+                    <button type="button" :disabled="timer.active || meetingInDelay" @click="incrementTimerDuration(timer)" class="px-2 min-h-[36px] bg-neutral-900 active:bg-neutral-800 text-neutral-400 disabled:opacity-30 custom-touch-target">+</button>
                   </div>
                   
-                  <button type="button" :disabled="timer.active" @click="deleteTimer(timer); postTimers()" class="p-2 text-red-500 hover:bg-red-950/30 active:bg-red-950/60 rounded disabled:opacity-20 custom-touch-target shrink-0">
+                  <button type="button" :disabled="timer.active" @click="deleteAndPost(timer)" class="p-2 text-red-500 hover:bg-red-950/30 active:bg-red-950/60 rounded disabled:opacity-20 custom-touch-target shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                   </button>
                 </li>
               </template>
               <li class="w-full">
-                <button type="button" @click="modalIsOpen = true" class="w-full min-h-[48px] flex justify-center items-center border border-dashed border-neutral-700 hover:border-neutral-500 rounded bg-neutral-900/20 text-neutral-400">
+                <button type="button" @click="openAddTimerModal()" class="w-full min-h-[48px] flex justify-center items-center border border-dashed border-neutral-700 hover:border-neutral-500 rounded bg-neutral-900/20 text-neutral-400">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                 </button>
               </li>
@@ -240,8 +194,30 @@
           </div>
         </div>
         <!-- ANTEPRIMA REGIA SPECULARE AL CLIENT (DESTRA) -->
-        <div class="w-full lg:w-1/2 h-[45dvh] lg:h-dvh overflow-hidden order-1 lg:order-2">
-          <div :class="endMeetingMode ? 'justify-center gap-0' : 'justify-between py-6'" class="h-full border border-neutral-800 bg-[#0a0a0a] flex flex-col items-center p-4 rounded lg:rounded-none relative transition-all">
+        <div class="w-full h-[60px] shrink-0 bg-[#0a0a0a] lg:w-1/2 lg:h-dvh overflow-hidden order-1 lg:order-2 sticky top-0 z-30 lg:static">
+          <div class="lg:hidden h-full border-b border-neutral-800 bg-[#0a0a0a] px-3 py-2 shadow-xl">
+            <div x-show="!endMeetingMode" class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p
+                  class="truncate font-timer text-xl font-bold uppercase leading-tight"
+                  :class="[delay ? 'text-red-500 animate-pulse' : 'text-green-500']"
+                  x-text="delay ? 'TEMPO SCADUTO' : (activeTimer?.name || 'In attesa')"
+                ></p>
+              </div>
+              <div
+                class="shrink-0 font-timer text-4xl font-bold tabular-nums leading-none"
+                :class="[delay ? 'text-red-500' : 'text-green-500']"
+              >
+                <span x-text="mins"></span><span class="px-0.5">:</span><span x-text="secs"></span>
+              </div>
+            </div>
+            <div x-show="endMeetingMode" class="flex items-center justify-between gap-3">
+              <span class="truncate font-timer text-xl font-bold uppercase text-orange-400" x-text="getEndMeetingGreeting()"></span>
+              <span class="shrink-0 font-mono text-2xl font-bold tabular-nums text-orange-400" x-text="clock.hm"></span>
+            </div>
+          </div>
+
+          <div :class="endMeetingMode ? 'justify-center gap-0' : 'justify-between py-6'" class="hidden h-full border border-neutral-800 bg-[#0a0a0a] lg:flex flex-col items-center p-4 rounded lg:rounded-none relative transition-all">
             
                 <div x-show="!endMeetingMode" class="flex items-center justify-center text-center h-20 w-full px-4 font-timer shrink-0">
                   <span
@@ -300,11 +276,11 @@
     </template>
 
     <!-- MODALE -->
-    <div x-cloak x-show="modalIsOpen" x-transition.opacity.duration.200ms x-trap.inert.noscroll="modalIsOpen" x-on:keydown.esc.window="modalIsOpen = false" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-      <div @click.outside="modalIsOpen = false" class="w-full max-w-md flex flex-col gap-4 rounded-lg border border-neutral-800 bg-neutral-900 p-6 shadow-2xl">
+    <div x-cloak x-show="modalIsOpen" x-transition.opacity.duration.200ms x-trap.inert.noscroll="modalIsOpen" x-on:keydown.esc.window="closeAddTimerModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+      <div @click.outside="closeAddTimerModal()" class="w-full max-w-md flex flex-col gap-4 rounded-lg border border-neutral-800 bg-neutral-900 p-6 shadow-2xl">
         <div class="flex items-center justify-between border-b border-neutral-800 pb-3">
           <h3 class="text-lg font-semibold text-white">Aggiungi nuova parte</h3>
-          <button @click="modalIsOpen = false" class="p-2 text-neutral-400 hover:text-white custom-touch-target"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>
+          <button @click="closeAddTimerModal()" class="p-2 text-neutral-400 hover:text-white custom-touch-target"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg></button>
         </div>
         <div class="space-y-4 py-2">
           <div class="flex flex-col gap-1">
@@ -314,17 +290,18 @@
           <div class="flex flex-col gap-1">
             <label class="text-sm text-neutral-400">Durata (minuti)</label>
             <div class="flex items-center border border-neutral-700 rounded bg-neutral-950 overflow-hidden w-fit">
-              <button type="button" @click="insertingDuration = Math.max(min, insertingDuration - 1)" class="px-4 min-h-[44px] bg-neutral-900 text-lg font-bold active:bg-neutral-800 text-neutral-300">-</button>
+              <button type="button" @click="decrementInsertingDuration()" class="px-4 min-h-[44px] bg-neutral-900 text-lg font-bold active:bg-neutral-800 text-neutral-300">-</button>
               <input x-model.number="insertingDuration" type="number" :max="max" :min="min" class="w-16 h-11 text-center bg-transparent border-none font-mono text-white font-bold" />
-              <button type="button" @click="insertingDuration = Math.min(max, insertingDuration + 1)" class="px-4 min-h-[44px] bg-neutral-900 text-lg font-bold active:bg-neutral-800 text-neutral-300">+</button>
+              <button type="button" @click="incrementInsertingDuration()" class="px-4 min-h-[44px] bg-neutral-900 text-lg font-bold active:bg-neutral-800 text-neutral-300">+</button>
             </div>
           </div>
         </div>
         <div class="flex justify-end gap-3 pt-3 border-t border-neutral-800">
-          <button @click="modalIsOpen = false" type="button" class="px-4 py-2 text-sm text-neutral-400 active:text-white">Annulla</button>
-          <button @click="modalIsOpen = false; addTimer();" type="button" class="px-4 py-2 rounded bg-green-600 active:bg-green-700 text-white font-medium text-sm">Aggiungi</button>
+          <button @click="closeAddTimerModal()" type="button" class="px-4 py-2 text-sm text-neutral-400 active:text-white">Annulla</button>
+          <button @click="confirmAddTimer()" type="button" class="px-4 py-2 rounded bg-green-600 active:bg-green-700 text-white font-medium text-sm">Aggiungi</button>
         </div>
       </div>
     </div>
   </body>
 </html>
+
